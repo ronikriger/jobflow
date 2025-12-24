@@ -377,18 +377,18 @@ export default function DashboardPage() {
                                     </div>
                                     <div>
                                         <p className="font-semibold text-white">Level {progress.level}</p>
-                                        <p className="text-sm text-zinc-400">{progress.totalXP} total XP</p>
+                                        <p className="text-sm text-zinc-400">{progress.xp} total XP</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-sm text-zinc-400">Next level</p>
-                                    <p className="font-semibold text-white">{progress.level * 100 - (progress.totalXP % 100)} XP to go</p>
+                                    <p className="font-semibold text-white">{progress.level * 100 - (progress.xp % 100)} XP to go</p>
                                 </div>
                             </div>
                             <div className="h-3 bg-zinc-700 rounded-full overflow-hidden">
                                 <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${(progress.totalXP % 100)}%` }}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${(progress.xp % 100)}%` }}
                                     transition={{ duration: 0.8, ease: "easeOut" }}
                                     className="h-full bg-gradient-to-r from-violet-500 to-purple-600 rounded-full"
                                 />
