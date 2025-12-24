@@ -13,7 +13,7 @@ import {
     AlertTriangle,
 } from "lucide-react";
 import { useSettings, updateSettings } from "@/lib/hooks";
-import { exportToCSV, db, seedDemoData } from "@/lib/db";
+import { exportToCSV, db, initializeDefaults } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
 const containerVariants = {
@@ -81,7 +81,7 @@ export default function SettingsPage() {
         await db.reminders.clear();
         await db.userProgress.clear();
         await db.settings.clear();
-        await seedDemoData();
+        await initializeDefaults();
         setShowResetConfirm(false);
         window.location.reload();
     };

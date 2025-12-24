@@ -17,6 +17,7 @@ import {
     Sparkles,
     Rocket,
     ArrowRight,
+    Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -33,6 +34,7 @@ import { AddApplicationModal } from "@/components/add-application-modal";
 import { HeatmapCalendar } from "@/components/heatmap-calendar";
 import { BADGE_CONFIG } from "@/lib/types";
 import type { NextAction, BadgeType } from "@/lib/types";
+import Link from "next/link";
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -56,6 +58,22 @@ export default function DashboardPage() {
     const progress = useUserProgress();
     const applications = useActiveApplications();
 
+    // Loading state
+    if (applications === undefined) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center gap-4"
+                >
+                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                    <p className="text-zinc-400">Loading your dashboard...</p>
+                </motion.div>
+            </div>
+        );
+    }
+
     const hasApplications = applications && applications.length > 0;
     const activeAppsCount = applications?.filter(
         (a) => !["rejected", "ghosted", "offer"].includes(a.status)
@@ -75,14 +93,14 @@ export default function DashboardPage() {
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                            className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg glow-blue"
+                            className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg"
                         >
                             <Rocket className="w-10 h-10 text-white" />
                         </motion.div>
 
                         <div className="space-y-3">
-                            <h1 className="text-4xl font-bold tracking-tight">Welcome to JobFlow</h1>
-                            <p className="text-lg text-muted-foreground max-w-md mx-auto">
+                            <h1 className="text-4xl font-bold tracking-tight text-white">Welcome to JobFlow</h1>
+                            <p className="text-lg text-zinc-400 max-w-md mx-auto">
                                 Your personal job search command center. Track applications, stay organized, and land your dream job.
                             </p>
                         </div>
@@ -113,22 +131,22 @@ export default function DashboardPage() {
                                 <div className="w-12 h-12 mx-auto rounded-xl bg-emerald-500/10 flex items-center justify-center">
                                     <Target className="w-6 h-6 text-emerald-500" />
                                 </div>
-                                <h3 className="font-semibold">Set Goals</h3>
-                                <p className="text-sm text-muted-foreground">Weekly & daily targets</p>
+                                <h3 className="font-semibold text-white">Set Goals</h3>
+                                <p className="text-sm text-zinc-400">Weekly & daily targets</p>
                             </div>
                             <div className="space-y-2">
                                 <div className="w-12 h-12 mx-auto rounded-xl bg-violet-500/10 flex items-center justify-center">
                                     <Briefcase className="w-6 h-6 text-violet-500" />
                                 </div>
-                                <h3 className="font-semibold">Track Progress</h3>
-                                <p className="text-sm text-muted-foreground">Kanban pipeline board</p>
+                                <h3 className="font-semibold text-white">Track Progress</h3>
+                                <p className="text-sm text-zinc-400">Visual pipeline board</p>
                             </div>
                             <div className="space-y-2">
                                 <div className="w-12 h-12 mx-auto rounded-xl bg-amber-500/10 flex items-center justify-center">
                                     <Flame className="w-6 h-6 text-amber-500" />
                                 </div>
-                                <h3 className="font-semibold">Stay Motivated</h3>
-                                <p className="text-sm text-muted-foreground">XP, streaks & badges</p>
+                                <h3 className="font-semibold text-white">Stay Motivated</h3>
+                                <p className="text-sm text-zinc-400">XP, streaks & badges</p>
                             </div>
                         </motion.div>
                     </div>
@@ -139,19 +157,20 @@ export default function DashboardPage() {
         );
     }
 
+    // Dashboard with data
     return (
-        <div className="min-h-screen p-8 gradient-mesh">
+        <div className="min-h-screen p-6 md:p-8">
             <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="max-w-6xl mx-auto space-y-8"
+                className="max-w-6xl mx-auto space-y-6"
             >
                 {/* Header */}
                 <motion.div variants={itemVariants} className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-                        <p className="text-muted-foreground mt-1">
+                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">Dashboard</h1>
+                        <p className="text-zinc-400 mt-1">
                             {new Date().toLocaleDateString("en-US", {
                                 weekday: "long",
                                 month: "long",
@@ -161,7 +180,7 @@ export default function DashboardPage() {
                     </div>
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-medium hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5"
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 text-white font-medium hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5"
                     >
                         <Plus className="w-4 h-4" />
                         Add Application
@@ -169,23 +188,23 @@ export default function DashboardPage() {
                 </motion.div>
 
                 {/* Stats Grid */}
-                <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Weekly Goal Card */}
-                    <div className="glass-card rounded-2xl p-5 space-y-4 card-hover">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4 hover:border-zinc-700 transition-colors">
                         <div className="flex items-center justify-between">
                             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
                                 <Target className="w-5 h-5 text-blue-500" />
                             </div>
-                            <span className="text-3xl font-bold">
-                                {weeklyStats.applied}<span className="text-lg text-muted-foreground font-normal">/{weeklyStats.goal}</span>
+                            <span className="text-2xl md:text-3xl font-bold text-white">
+                                {weeklyStats.applied}<span className="text-lg text-zinc-500 font-normal">/{weeklyStats.goal}</span>
                             </span>
                         </div>
                         <div>
-                            <p className="text-sm font-medium mb-2">Weekly Goal</p>
-                            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                            <p className="text-sm font-medium text-zinc-300 mb-2">Weekly Goal</p>
+                            <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                                 <motion.div
                                     initial={{ width: 0 }}
-                                    animate={{ width: `${weeklyStats.percentage}%` }}
+                                    animate={{ width: `${Math.min(weeklyStats.percentage, 100)}%` }}
                                     transition={{ duration: 0.8, ease: "easeOut" }}
                                     className={cn(
                                         "h-full rounded-full",
@@ -197,21 +216,21 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Daily Progress */}
-                    <div className="glass-card rounded-2xl p-5 space-y-4 card-hover">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4 hover:border-zinc-700 transition-colors">
                         <div className="flex items-center justify-between">
                             <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
                                 <TrendingUp className="w-5 h-5 text-violet-500" />
                             </div>
-                            <span className="text-3xl font-bold">
-                                {dailyStats.applied}<span className="text-lg text-muted-foreground font-normal">/{dailyStats.goal}</span>
+                            <span className="text-2xl md:text-3xl font-bold text-white">
+                                {dailyStats.applied}<span className="text-lg text-zinc-500 font-normal">/{dailyStats.goal}</span>
                             </span>
                         </div>
                         <div>
-                            <p className="text-sm font-medium mb-2">Today&apos;s Progress</p>
-                            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                            <p className="text-sm font-medium text-zinc-300 mb-2">Today&apos;s Progress</p>
+                            <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                                 <motion.div
                                     initial={{ width: 0 }}
-                                    animate={{ width: `${dailyStats.percentage}%` }}
+                                    animate={{ width: `${Math.min(dailyStats.percentage, 100)}%` }}
                                     transition={{ duration: 0.8, ease: "easeOut" }}
                                     className="h-full bg-violet-500 rounded-full"
                                 />
@@ -220,30 +239,35 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Active Applications */}
-                    <div className="glass-card rounded-2xl p-5 space-y-4 card-hover">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4 hover:border-zinc-700 transition-colors">
                         <div className="flex items-center justify-between">
                             <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
                                 <Briefcase className="w-5 h-5 text-amber-500" />
                             </div>
-                            <span className="text-3xl font-bold">{activeAppsCount}</span>
+                            <span className="text-2xl md:text-3xl font-bold text-white">{activeAppsCount}</span>
                         </div>
-                        <p className="text-sm font-medium">Active Applications</p>
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-zinc-300">Active Applications</p>
+                            <Link href="/board" className="text-xs text-blue-400 hover:text-blue-300">
+                                View all →
+                            </Link>
+                        </div>
                     </div>
 
                     {/* Current Streak */}
-                    <div className="glass-card rounded-2xl p-5 space-y-4 card-hover">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4 hover:border-zinc-700 transition-colors">
                         <div className="flex items-center justify-between">
                             <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
                                 <Flame className="w-5 h-5 text-orange-500" />
                             </div>
                             <div className="flex items-baseline gap-1">
-                                <span className="text-3xl font-bold">{progress?.currentStreak ?? 0}</span>
-                                <span className="text-muted-foreground">days</span>
+                                <span className="text-2xl md:text-3xl font-bold text-white">{progress?.currentStreak ?? 0}</span>
+                                <span className="text-zinc-500">days</span>
                             </div>
                         </div>
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-medium text-zinc-300">
                             Current Streak
-                            {progress?.longestStreak ? <span className="text-muted-foreground"> · Best: {progress.longestStreak}</span> : ""}
+                            {progress?.longestStreak ? <span className="text-zinc-500"> · Best: {progress.longestStreak}</span> : ""}
                         </p>
                     </div>
                 </motion.div>
@@ -253,12 +277,12 @@ export default function DashboardPage() {
                     {/* Next Actions */}
                     <motion.div variants={itemVariants} className="lg:col-span-2 space-y-4">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold flex items-center gap-2">
-                                <Clock className="w-5 h-5 text-muted-foreground" />
+                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <Clock className="w-5 h-5 text-zinc-400" />
                                 Next Actions
                             </h2>
                             {nextActions.length > 0 && (
-                                <span className="text-sm text-muted-foreground px-2 py-1 rounded-lg bg-secondary">
+                                <span className="text-sm text-zinc-400 px-2 py-1 rounded-lg bg-zinc-800">
                                     {nextActions.length} pending
                                 </span>
                             )}
@@ -266,12 +290,12 @@ export default function DashboardPage() {
 
                         <div className="space-y-3">
                             {nextActions.length === 0 ? (
-                                <div className="glass-card rounded-2xl p-8 text-center">
+                                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 text-center">
                                     <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-4">
                                         <CalendarCheck className="w-7 h-7 text-emerald-500" />
                                     </div>
-                                    <h3 className="font-semibold text-lg mb-1">All caught up!</h3>
-                                    <p className="text-sm text-muted-foreground">No pending actions. Add more applications to keep momentum.</p>
+                                    <h3 className="font-semibold text-lg text-white mb-1">All caught up!</h3>
+                                    <p className="text-sm text-zinc-400">No pending actions. Add more applications to keep momentum.</p>
                                 </div>
                             ) : (
                                 nextActions.slice(0, 5).map((action, index) => (
@@ -284,7 +308,7 @@ export default function DashboardPage() {
                     {/* Stale Applications */}
                     <motion.div variants={itemVariants} className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold flex items-center gap-2">
+                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                                 <Clock className="w-5 h-5 text-amber-500" />
                                 Needs Follow-up
                             </h2>
@@ -297,12 +321,12 @@ export default function DashboardPage() {
 
                         <div className="space-y-2">
                             {staleApps.length === 0 ? (
-                                <div className="glass-card rounded-2xl p-6 text-center">
+                                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 text-center">
                                     <div className="w-12 h-12 mx-auto rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3">
                                         <Sparkles className="w-6 h-6 text-emerald-500" />
                                     </div>
-                                    <h3 className="font-semibold mb-1">Looking good!</h3>
-                                    <p className="text-sm text-muted-foreground">No stale applications.</p>
+                                    <h3 className="font-semibold text-white mb-1">Looking good!</h3>
+                                    <p className="text-sm text-zinc-400">No stale applications.</p>
                                 </div>
                             ) : (
                                 staleApps.slice(0, 4).map((app) => (
@@ -316,8 +340,8 @@ export default function DashboardPage() {
                 {/* Heatmap Calendar */}
                 <motion.div variants={itemVariants}>
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold">Application Activity</h2>
-                        <span className="text-sm text-muted-foreground">Last 52 weeks</span>
+                        <h2 className="text-lg font-semibold text-white">Application Activity</h2>
+                        <span className="text-sm text-zinc-400">Last 52 weeks</span>
                     </div>
                     <HeatmapCalendar applications={applications || []} />
                 </motion.div>
@@ -326,11 +350,11 @@ export default function DashboardPage() {
                 {progress?.badges && progress.badges.length > 0 && (
                     <motion.div variants={itemVariants}>
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-semibold flex items-center gap-2">
+                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                                 <Award className="w-5 h-5 text-amber-500" />
                                 Achievements
                             </h2>
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-sm text-zinc-400">
                                 {progress.badges.length} earned
                             </span>
                         </div>
@@ -338,6 +362,37 @@ export default function DashboardPage() {
                             {progress.badges.map((badge) => (
                                 <BadgeCard key={badge} badge={badge} />
                             ))}
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* XP Progress */}
+                {progress && (
+                    <motion.div variants={itemVariants}>
+                        <div className="bg-gradient-to-r from-zinc-900 to-zinc-800 border border-zinc-700 rounded-2xl p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                                        {progress.level}
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-white">Level {progress.level}</p>
+                                        <p className="text-sm text-zinc-400">{progress.totalXP} total XP</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-sm text-zinc-400">Next level</p>
+                                    <p className="font-semibold text-white">{progress.level * 100 - (progress.totalXP % 100)} XP to go</p>
+                                </div>
+                            </div>
+                            <div className="h-3 bg-zinc-700 rounded-full overflow-hidden">
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${(progress.totalXP % 100)}%` }}
+                                    transition={{ duration: 0.8, ease: "easeOut" }}
+                                    className="h-full bg-gradient-to-r from-violet-500 to-purple-600 rounded-full"
+                                />
+                            </div>
                         </div>
                     </motion.div>
                 )}
@@ -375,20 +430,20 @@ function NextActionCard({ action, index }: { action: NextAction; index: number }
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05 }}
-            className="glass-card rounded-xl p-4 flex items-center gap-4 card-hover"
+            className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center gap-4 hover:border-zinc-700 transition-colors"
         >
-            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", colorMap[action.type])}>
+            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0", colorMap[action.type])}>
                 <Icon className="w-5 h-5" />
             </div>
 
             <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{action.description}</p>
-                <p className="text-sm text-muted-foreground truncate">{action.application.role}</p>
+                <p className="font-medium text-white truncate">{action.description}</p>
+                <p className="text-sm text-zinc-400 truncate">{action.application.company} · {action.application.role}</p>
             </div>
 
             <button
                 onClick={handleAction}
-                className="flex items-center gap-1 px-4 py-2 rounded-lg bg-secondary hover:bg-accent text-sm font-medium transition-colors"
+                className="flex items-center gap-1 px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-sm font-medium text-white transition-colors flex-shrink-0"
             >
                 Done
                 <ChevronRight className="w-4 h-4" />
@@ -401,13 +456,13 @@ function BadgeCard({ badge }: { badge: BadgeType }) {
     const config = BADGE_CONFIG[badge];
 
     return (
-        <div className="glass-card rounded-xl px-4 py-3 flex items-center gap-3 card-hover">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-zinc-700 transition-colors">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
                 <Award className="w-5 h-5 text-white" />
             </div>
             <div>
-                <p className="font-medium text-sm">{config.label}</p>
-                <p className="text-xs text-muted-foreground">{config.description}</p>
+                <p className="font-medium text-sm text-white">{config.label}</p>
+                <p className="text-xs text-zinc-400">{config.description}</p>
             </div>
         </div>
     );
