@@ -387,8 +387,8 @@ export default function DashboardPage() {
                             </div>
                             <div className="h-3 bg-zinc-700 rounded-full overflow-hidden">
                                 <motion.div
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${(progress.xp % 100)}%` }}
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${(progress.xp % 100)}%` }}
                                     transition={{ duration: 0.8, ease: "easeOut" }}
                                     className="h-full bg-gradient-to-r from-violet-500 to-purple-600 rounded-full"
                                 />
