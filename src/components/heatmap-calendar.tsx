@@ -11,8 +11,8 @@ interface HeatmapCalendarProps {
 }
 
 export function HeatmapCalendar({ applications }: HeatmapCalendarProps) {
-    const today = new Date();
     const weeks = 52;
+    const today = useMemo(() => new Date(), []);
 
     // Generate heatmap data
     const heatmapData = useMemo(() => {
@@ -47,7 +47,7 @@ export function HeatmapCalendar({ applications }: HeatmapCalendarProps) {
         }
 
         return weeksData;
-    }, [applications, today, weeks]);
+    }, [applications, today]);
 
     // Get intensity level (0-4)
     const getIntensity = (count: number): number => {
