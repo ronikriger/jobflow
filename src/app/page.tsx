@@ -15,6 +15,8 @@ import {
     Flame,
     Award,
     Sparkles,
+    Rocket,
+    ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -36,15 +38,13 @@ const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
-        transition: {
-            staggerChildren: 0.1,
-        },
+        transition: { staggerChildren: 0.08 },
     },
 };
 
 const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
 export default function DashboardPage() {
@@ -56,12 +56,91 @@ export default function DashboardPage() {
     const progress = useUserProgress();
     const applications = useActiveApplications();
 
+    const hasApplications = applications && applications.length > 0;
     const activeAppsCount = applications?.filter(
         (a) => !["rejected", "ghosted", "offer"].includes(a.status)
     ).length ?? 0;
 
+    // Empty state for new users
+    if (!hasApplications) {
+        return (
+            <div className="min-h-screen p-8">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="max-w-2xl mx-auto pt-20"
+                >
+                    <div className="text-center space-y-6">
+                        <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                            className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg glow-blue"
+                        >
+                            <Rocket className="w-10 h-10 text-white" />
+                        </motion.div>
+
+                        <div className="space-y-3">
+                            <h1 className="text-4xl font-bold tracking-tight">Welcome to JobFlow</h1>
+                            <p className="text-lg text-muted-foreground max-w-md mx-auto">
+                                Your personal job search command center. Track applications, stay organized, and land your dream job.
+                            </p>
+                        </div>
+
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.4 }}
+                            className="pt-4"
+                        >
+                            <button
+                                onClick={() => setShowAddModal(true)}
+                                className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold text-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl hover:shadow-blue-500/25 hover:-translate-y-0.5"
+                            >
+                                <Plus className="w-5 h-5" />
+                                Add Your First Application
+                                <ArrowRight className="w-5 h-5" />
+                            </button>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.6 }}
+                            className="pt-12 grid grid-cols-3 gap-6 text-center"
+                        >
+                            <div className="space-y-2">
+                                <div className="w-12 h-12 mx-auto rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                                    <Target className="w-6 h-6 text-emerald-500" />
+                                </div>
+                                <h3 className="font-semibold">Set Goals</h3>
+                                <p className="text-sm text-muted-foreground">Weekly & daily targets</p>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="w-12 h-12 mx-auto rounded-xl bg-violet-500/10 flex items-center justify-center">
+                                    <Briefcase className="w-6 h-6 text-violet-500" />
+                                </div>
+                                <h3 className="font-semibold">Track Progress</h3>
+                                <p className="text-sm text-muted-foreground">Kanban pipeline board</p>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="w-12 h-12 mx-auto rounded-xl bg-amber-500/10 flex items-center justify-center">
+                                    <Flame className="w-6 h-6 text-amber-500" />
+                                </div>
+                                <h3 className="font-semibold">Stay Motivated</h3>
+                                <p className="text-sm text-muted-foreground">XP, streaks & badges</p>
+                            </div>
+                        </motion.div>
+                    </div>
+                </motion.div>
+
+                <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} />
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen p-8">
+        <div className="min-h-screen p-8 gradient-mesh">
             <motion.div
                 variants={containerVariants}
                 initial="hidden"
@@ -71,7 +150,7 @@ export default function DashboardPage() {
                 {/* Header */}
                 <motion.div variants={itemVariants} className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Today</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
                         <p className="text-muted-foreground mt-1">
                             {new Date().toLocaleDateString("en-US", {
                                 weekday: "long",
@@ -82,7 +161,7 @@ export default function DashboardPage() {
                     </div>
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/25"
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white font-medium hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5"
                     >
                         <Plus className="w-4 h-4" />
                         Add Application
@@ -92,25 +171,25 @@ export default function DashboardPage() {
                 {/* Stats Grid */}
                 <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Weekly Goal Card */}
-                    <div className="glass-card rounded-2xl p-5 space-y-3">
+                    <div className="glass-card rounded-2xl p-5 space-y-4 card-hover">
                         <div className="flex items-center justify-between">
-                            <div className="p-2 rounded-lg bg-primary/10">
-                                <Target className="w-5 h-5 text-primary" />
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                <Target className="w-5 h-5 text-blue-500" />
                             </div>
-                            <span className="text-2xl font-bold">
-                                {weeklyStats.applied}/{weeklyStats.goal}
+                            <span className="text-3xl font-bold">
+                                {weeklyStats.applied}<span className="text-lg text-muted-foreground font-normal">/{weeklyStats.goal}</span>
                             </span>
                         </div>
                         <div>
-                            <p className="text-sm text-muted-foreground">Weekly Goal</p>
-                            <div className="mt-2 h-2 bg-secondary rounded-full overflow-hidden">
+                            <p className="text-sm font-medium mb-2">Weekly Goal</p>
+                            <div className="h-2 bg-secondary rounded-full overflow-hidden">
                                 <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${weeklyStats.percentage}%` }}
                                     transition={{ duration: 0.8, ease: "easeOut" }}
                                     className={cn(
                                         "h-full rounded-full",
-                                        weeklyStats.percentage >= 100 ? "bg-emerald-500" : "bg-primary"
+                                        weeklyStats.percentage >= 100 ? "bg-emerald-500" : "bg-blue-500"
                                     )}
                                 />
                             </div>
@@ -118,18 +197,18 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Daily Progress */}
-                    <div className="glass-card rounded-2xl p-5 space-y-3">
+                    <div className="glass-card rounded-2xl p-5 space-y-4 card-hover">
                         <div className="flex items-center justify-between">
-                            <div className="p-2 rounded-lg bg-violet-500/10">
-                                <TrendingUp className="w-5 h-5 text-violet-400" />
+                            <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                                <TrendingUp className="w-5 h-5 text-violet-500" />
                             </div>
-                            <span className="text-2xl font-bold">
-                                {dailyStats.applied}/{dailyStats.goal}
+                            <span className="text-3xl font-bold">
+                                {dailyStats.applied}<span className="text-lg text-muted-foreground font-normal">/{dailyStats.goal}</span>
                             </span>
                         </div>
                         <div>
-                            <p className="text-sm text-muted-foreground">Today&apos;s Progress</p>
-                            <div className="mt-2 h-2 bg-secondary rounded-full overflow-hidden">
+                            <p className="text-sm font-medium mb-2">Today&apos;s Progress</p>
+                            <div className="h-2 bg-secondary rounded-full overflow-hidden">
                                 <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${dailyStats.percentage}%` }}
@@ -141,30 +220,30 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Active Applications */}
-                    <div className="glass-card rounded-2xl p-5 space-y-3">
+                    <div className="glass-card rounded-2xl p-5 space-y-4 card-hover">
                         <div className="flex items-center justify-between">
-                            <div className="p-2 rounded-lg bg-amber-500/10">
-                                <Briefcase className="w-5 h-5 text-amber-400" />
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                                <Briefcase className="w-5 h-5 text-amber-500" />
                             </div>
-                            <span className="text-2xl font-bold">{activeAppsCount}</span>
+                            <span className="text-3xl font-bold">{activeAppsCount}</span>
                         </div>
-                        <p className="text-sm text-muted-foreground">Active Applications</p>
+                        <p className="text-sm font-medium">Active Applications</p>
                     </div>
 
                     {/* Current Streak */}
-                    <div className="glass-card rounded-2xl p-5 space-y-3">
+                    <div className="glass-card rounded-2xl p-5 space-y-4 card-hover">
                         <div className="flex items-center justify-between">
-                            <div className="p-2 rounded-lg bg-orange-500/10">
-                                <Flame className="w-5 h-5 text-orange-400" />
+                            <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                                <Flame className="w-5 h-5 text-orange-500" />
                             </div>
-                            <div className="flex items-center gap-1">
-                                <span className="text-2xl font-bold">{progress?.currentStreak ?? 0}</span>
-                                <span className="text-sm text-muted-foreground">days</span>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-3xl font-bold">{progress?.currentStreak ?? 0}</span>
+                                <span className="text-muted-foreground">days</span>
                             </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm font-medium">
                             Current Streak
-                            {progress?.longestStreak ? ` (Best: ${progress.longestStreak})` : ""}
+                            {progress?.longestStreak ? <span className="text-muted-foreground"> · Best: {progress.longestStreak}</span> : ""}
                         </p>
                     </div>
                 </motion.div>
@@ -178,25 +257,25 @@ export default function DashboardPage() {
                                 <Clock className="w-5 h-5 text-muted-foreground" />
                                 Next Actions
                             </h2>
-                            <span className="text-sm text-muted-foreground">
-                                {nextActions.length} pending
-                            </span>
+                            {nextActions.length > 0 && (
+                                <span className="text-sm text-muted-foreground px-2 py-1 rounded-lg bg-secondary">
+                                    {nextActions.length} pending
+                                </span>
+                            )}
                         </div>
 
                         <div className="space-y-3">
                             {nextActions.length === 0 ? (
-                                <EmptyState
-                                    icon={<CalendarCheck className="w-8 h-8" />}
-                                    title="All caught up!"
-                                    description="No pending actions. Add more applications to keep your momentum."
-                                />
+                                <div className="glass-card rounded-2xl p-8 text-center">
+                                    <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-4">
+                                        <CalendarCheck className="w-7 h-7 text-emerald-500" />
+                                    </div>
+                                    <h3 className="font-semibold text-lg mb-1">All caught up!</h3>
+                                    <p className="text-sm text-muted-foreground">No pending actions. Add more applications to keep momentum.</p>
+                                </div>
                             ) : (
                                 nextActions.slice(0, 5).map((action, index) => (
-                                    <NextActionCard
-                                        key={action.id}
-                                        action={action}
-                                        index={index}
-                                    />
+                                    <NextActionCard key={action.id} action={action} index={index} />
                                 ))
                             )}
                         </div>
@@ -206,22 +285,25 @@ export default function DashboardPage() {
                     <motion.div variants={itemVariants} className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-lg font-semibold flex items-center gap-2">
-                                <Clock className="w-5 h-5 text-amber-400" />
-                                Stale Applications
+                                <Clock className="w-5 h-5 text-amber-500" />
+                                Needs Follow-up
                             </h2>
-                            <span className="text-sm text-amber-400 font-medium">
-                                {staleApps.length}
-                            </span>
+                            {staleApps.length > 0 && (
+                                <span className="text-sm font-medium text-amber-500 px-2 py-1 rounded-lg bg-amber-500/10">
+                                    {staleApps.length}
+                                </span>
+                            )}
                         </div>
 
                         <div className="space-y-2">
                             {staleApps.length === 0 ? (
-                                <EmptyState
-                                    icon={<Sparkles className="w-8 h-8" />}
-                                    title="Looking good!"
-                                    description="No stale applications. Keep the momentum going!"
-                                    small
-                                />
+                                <div className="glass-card rounded-2xl p-6 text-center">
+                                    <div className="w-12 h-12 mx-auto rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3">
+                                        <Sparkles className="w-6 h-6 text-emerald-500" />
+                                    </div>
+                                    <h3 className="font-semibold mb-1">Looking good!</h3>
+                                    <p className="text-sm text-muted-foreground">No stale applications.</p>
+                                </div>
                             ) : (
                                 staleApps.slice(0, 4).map((app) => (
                                     <ApplicationCardCompact key={app.id} application={app} />
@@ -245,7 +327,7 @@ export default function DashboardPage() {
                     <motion.div variants={itemVariants}>
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold flex items-center gap-2">
-                                <Award className="w-5 h-5 text-amber-400" />
+                                <Award className="w-5 h-5 text-amber-500" />
                                 Achievements
                             </h2>
                             <span className="text-sm text-muted-foreground">
@@ -276,10 +358,10 @@ function NextActionCard({ action, index }: { action: NextAction; index: number }
     const Icon = iconMap[action.type];
 
     const colorMap = {
-        "follow-up": "text-blue-400 bg-blue-500/10",
-        prep: "text-violet-400 bg-violet-500/10",
-        apply: "text-emerald-400 bg-emerald-500/10",
-        "log-outcome": "text-amber-400 bg-amber-500/10",
+        "follow-up": "bg-blue-500/10 text-blue-500",
+        prep: "bg-violet-500/10 text-violet-500",
+        apply: "bg-emerald-500/10 text-emerald-500",
+        "log-outcome": "bg-amber-500/10 text-amber-500",
     };
 
     const handleAction = async () => {
@@ -293,22 +375,20 @@ function NextActionCard({ action, index }: { action: NextAction; index: number }
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05 }}
-            className="glass-card rounded-xl p-4 flex items-center gap-4"
+            className="glass-card rounded-xl p-4 flex items-center gap-4 card-hover"
         >
-            <div className={cn("p-2.5 rounded-xl", colorMap[action.type])}>
+            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", colorMap[action.type])}>
                 <Icon className="w-5 h-5" />
             </div>
 
             <div className="flex-1 min-w-0">
-                <p className="font-medium">{action.description}</p>
-                <p className="text-sm text-muted-foreground truncate">
-                    {action.application.role}
-                </p>
+                <p className="font-medium truncate">{action.description}</p>
+                <p className="text-sm text-muted-foreground truncate">{action.application.role}</p>
             </div>
 
             <button
                 onClick={handleAction}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-sm font-medium transition-colors"
+                className="flex items-center gap-1 px-4 py-2 rounded-lg bg-secondary hover:bg-accent text-sm font-medium transition-colors"
             >
                 Done
                 <ChevronRight className="w-4 h-4" />
@@ -321,8 +401,8 @@ function BadgeCard({ badge }: { badge: BadgeType }) {
     const config = BADGE_CONFIG[badge];
 
     return (
-        <div className="glass-card rounded-xl px-4 py-3 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+        <div className="glass-card rounded-xl px-4 py-3 flex items-center gap-3 card-hover">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
                 <Award className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -332,27 +412,3 @@ function BadgeCard({ badge }: { badge: BadgeType }) {
         </div>
     );
 }
-
-function EmptyState({
-    icon,
-    title,
-    description,
-    small = false,
-}: {
-    icon: React.ReactNode;
-    title: string;
-    description: string;
-    small?: boolean;
-}) {
-    return (
-        <div className={cn(
-            "glass-card rounded-xl flex flex-col items-center justify-center text-center",
-            small ? "p-6" : "p-12"
-        )}>
-            <div className="text-muted-foreground mb-3">{icon}</div>
-            <h3 className="font-semibold mb-1">{title}</h3>
-            <p className="text-sm text-muted-foreground max-w-xs">{description}</p>
-        </div>
-    );
-}
-
