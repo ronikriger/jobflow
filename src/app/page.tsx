@@ -18,6 +18,7 @@ import {
     Rocket,
     ArrowRight,
     Loader2,
+    Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -61,7 +62,7 @@ export default function DashboardPage() {
     // Loading state
     if (applications === undefined) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center bg-zinc-950">
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -82,7 +83,7 @@ export default function DashboardPage() {
     // Empty state for new users
     if (!hasApplications) {
         return (
-            <div className="min-h-screen p-8">
+            <div className="min-h-screen p-8 bg-zinc-950">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -93,7 +94,7 @@ export default function DashboardPage() {
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                            className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg"
+                            className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-500/25"
                         >
                             <Rocket className="w-10 h-10 text-white" />
                         </motion.div>
@@ -132,21 +133,21 @@ export default function DashboardPage() {
                                     <Target className="w-6 h-6 text-emerald-500" />
                                 </div>
                                 <h3 className="font-semibold text-white">Set Goals</h3>
-                                <p className="text-sm text-zinc-400">Weekly & daily targets</p>
+                                <p className="text-sm text-zinc-500">Weekly & daily targets</p>
                             </div>
                             <div className="space-y-2">
                                 <div className="w-12 h-12 mx-auto rounded-xl bg-violet-500/10 flex items-center justify-center">
                                     <Briefcase className="w-6 h-6 text-violet-500" />
                                 </div>
                                 <h3 className="font-semibold text-white">Track Progress</h3>
-                                <p className="text-sm text-zinc-400">Visual pipeline board</p>
+                                <p className="text-sm text-zinc-500">Visual pipeline board</p>
                             </div>
                             <div className="space-y-2">
                                 <div className="w-12 h-12 mx-auto rounded-xl bg-amber-500/10 flex items-center justify-center">
                                     <Flame className="w-6 h-6 text-amber-500" />
                                 </div>
                                 <h3 className="font-semibold text-white">Stay Motivated</h3>
-                                <p className="text-sm text-zinc-400">XP, streaks & badges</p>
+                                <p className="text-sm text-zinc-500">XP, streaks & badges</p>
                             </div>
                         </motion.div>
                     </div>
@@ -159,7 +160,7 @@ export default function DashboardPage() {
 
     // Dashboard with data
     return (
-        <div className="min-h-screen p-6 md:p-8">
+        <div className="min-h-screen p-6 md:p-8 bg-zinc-950">
             <motion.div
                 variants={containerVariants}
                 initial="hidden"
@@ -248,8 +249,8 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-zinc-300">Active Applications</p>
-                            <Link href="/board" className="text-xs text-blue-400 hover:text-blue-300">
-                                View all →
+                            <Link href="/board" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                                View →
                             </Link>
                         </div>
                     </div>
@@ -341,38 +342,20 @@ export default function DashboardPage() {
                 <motion.div variants={itemVariants}>
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-white">Application Activity</h2>
-                        <span className="text-sm text-zinc-400">Last 52 weeks</span>
+                        <span className="text-sm text-zinc-500">Last 52 weeks</span>
                     </div>
-                    <HeatmapCalendar applications={applications || []} />
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 overflow-x-auto">
+                        <HeatmapCalendar applications={applications || []} />
+                    </div>
                 </motion.div>
-
-                {/* Badges Section */}
-                {progress?.badges && progress.badges.length > 0 && (
-                    <motion.div variants={itemVariants}>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <Award className="w-5 h-5 text-amber-500" />
-                                Achievements
-                            </h2>
-                            <span className="text-sm text-zinc-400">
-                                {progress.badges.length} earned
-                            </span>
-                        </div>
-                        <div className="flex flex-wrap gap-3">
-                            {progress.badges.map((badge) => (
-                                <BadgeCard key={badge} badge={badge} />
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
 
                 {/* XP Progress */}
                 {progress && (
                     <motion.div variants={itemVariants}>
-                        <div className="bg-gradient-to-r from-zinc-900 to-zinc-800 border border-zinc-700 rounded-2xl p-6">
+                        <div className="bg-gradient-to-r from-zinc-900 via-zinc-900 to-violet-950/30 border border-zinc-800 rounded-2xl p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-violet-500/25">
                                         {progress.level}
                                     </div>
                                     <div>
@@ -385,7 +368,7 @@ export default function DashboardPage() {
                                     <p className="font-semibold text-white">{progress.level * 100 - (progress.xp % 100)} XP to go</p>
                                 </div>
                             </div>
-                            <div className="h-3 bg-zinc-700 rounded-full overflow-hidden">
+                            <div className="h-3 bg-zinc-800 rounded-full overflow-hidden">
                                 <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${(progress.xp % 100)}%` }}
@@ -396,6 +379,59 @@ export default function DashboardPage() {
                         </div>
                     </motion.div>
                 )}
+
+                {/* Badges Section */}
+                {progress?.badges && progress.badges.length > 0 && (
+                    <motion.div variants={itemVariants}>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <Award className="w-5 h-5 text-amber-500" />
+                                Achievements
+                            </h2>
+                            <span className="text-sm text-zinc-500">{progress.badges.length} earned</span>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                            {progress.badges.map((badge) => (
+                                <BadgeCard key={badge} badge={badge} />
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* Quick Actions */}
+                <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Link href="/board" className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-all group">
+                        <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center mb-3 group-hover:bg-blue-500/20 transition-colors">
+                            <TrendingUp className="w-5 h-5 text-blue-500" />
+                        </div>
+                        <p className="font-medium text-white">Pipeline</p>
+                        <p className="text-xs text-zinc-500">View your flow</p>
+                    </Link>
+                    <Link href="/analytics" className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-all group">
+                        <div className="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center mb-3 group-hover:bg-violet-500/20 transition-colors">
+                            <Zap className="w-5 h-5 text-violet-500" />
+                        </div>
+                        <p className="font-medium text-white">Analytics</p>
+                        <p className="text-xs text-zinc-500">Track performance</p>
+                    </Link>
+                    <Link href="/settings" className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-all group">
+                        <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center mb-3 group-hover:bg-amber-500/20 transition-colors">
+                            <Target className="w-5 h-5 text-amber-500" />
+                        </div>
+                        <p className="font-medium text-white">Goals</p>
+                        <p className="text-xs text-zinc-500">Set targets</p>
+                    </Link>
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 hover:bg-zinc-800/50 transition-all group text-left"
+                    >
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-3 group-hover:bg-emerald-500/20 transition-colors">
+                            <Plus className="w-5 h-5 text-emerald-500" />
+                        </div>
+                        <p className="font-medium text-white">Quick Add</p>
+                        <p className="text-xs text-zinc-500">New application</p>
+                    </button>
+                </motion.div>
             </motion.div>
 
             <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} />
@@ -457,12 +493,12 @@ function BadgeCard({ badge }: { badge: BadgeType }) {
 
     return (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-zinc-700 transition-colors">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
                 <Award className="w-5 h-5 text-white" />
             </div>
             <div>
                 <p className="font-medium text-sm text-white">{config.label}</p>
-                <p className="text-xs text-zinc-400">{config.description}</p>
+                <p className="text-xs text-zinc-500">{config.description}</p>
             </div>
         </div>
     );

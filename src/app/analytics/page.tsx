@@ -13,8 +13,6 @@ import {
     PieChart,
     Pie,
     Cell,
-    LineChart,
-    Line,
     AreaChart,
     Area,
 } from "recharts";
@@ -22,15 +20,16 @@ import {
     TrendingUp,
     TrendingDown,
     Clock,
-    Target,
     MessageSquare,
     Briefcase,
     CheckCircle2,
+    BarChart3,
+    Loader2,
 } from "lucide-react";
 import { useApplications, useUserProgress } from "@/lib/hooks";
 import { calculateAnalytics, cn } from "@/lib/utils";
 import { STATUS_CONFIG, PLATFORM_CONFIG } from "@/lib/types";
-import type { ApplicationStatus, Platform } from "@/lib/types";
+import type { ApplicationStatus } from "@/lib/types";
 import { format, subWeeks, startOfWeek, isWithinInterval, endOfWeek } from "date-fns";
 
 const containerVariants = {
@@ -46,7 +45,7 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 },
 };
 
-const FUNNEL_COLORS = {
+const FUNNEL_COLORS: Record<ApplicationStatus, string> = {
     saved: "#6366f1",
     applied: "#3b82f6",
     screen: "#8b5cf6",
@@ -63,24 +62,17 @@ export default function AnalyticsPage() {
     const progress = useUserProgress();
 
     const analytics = useMemo(() => {
-        if (!applications) return null;
+        if (!applications || applications.length === 0) return null;
         return calculateAnalytics(applications);
     }, [applications]);
 
     // Funnel data
     const funnelData = useMemo(() => {
-        if (!applications) return [];
+        if (!applications || applications.length === 0) return [];
 
         const statusCounts: Record<ApplicationStatus, number> = {
-            saved: 0,
-            applied: 0,
-            screen: 0,
-            interview1: 0,
-            interview2: 0,
-            final: 0,
-            offer: 0,
-            rejected: 0,
-            ghosted: 0,
+            saved: 0, applied: 0, screen: 0, interview1: 0,
+            interview2: 0, final: 0, offer: 0, rejected: 0, ghosted: 0,
         };
 
         applications.forEach((app) => {
@@ -88,13 +80,7 @@ export default function AnalyticsPage() {
         });
 
         const funnelOrder: ApplicationStatus[] = [
-            "saved",
-            "applied",
-            "screen",
-            "interview1",
-            "interview2",
-            "final",
-            "offer",
+            "saved", "applied", "screen", "interview1", "interview2", "final", "offer",
         ];
 
         return funnelOrder.map((status) => ({
@@ -115,10 +101,7 @@ export default function AnalyticsPage() {
 
             const weekApps = applications.filter((app) => {
                 if (!app.appliedAt) return false;
-                return isWithinInterval(new Date(app.appliedAt), {
-                    start: weekStart,
-                    end: weekEnd,
-                });
+                return isWithinInterval(new Date(app.appliedAt), { start: weekStart, end: weekEnd });
             });
 
             const interviews = applications.filter((app) => {
@@ -141,13 +124,13 @@ export default function AnalyticsPage() {
 
     // Platform breakdown
     const platformData = useMemo(() => {
-        if (!analytics) return [];
+        if (!analytics || !analytics.platformStats) return [];
 
         return analytics.platformStats
             .filter((p) => p.total > 0)
             .sort((a, b) => b.total - a.total)
             .map((p) => ({
-                name: PLATFORM_CONFIG[p.platform].label,
+                name: PLATFORM_CONFIG[p.platform]?.label || p.platform,
                 total: p.total,
                 responseRate: p.responseRate,
                 interviewRate: p.interviewRate,
@@ -156,7 +139,7 @@ export default function AnalyticsPage() {
 
     // Status distribution for pie chart
     const statusDistribution = useMemo(() => {
-        if (!applications) return [];
+        if (!applications || applications.length === 0) return [];
 
         const counts: Record<string, number> = {};
         applications.forEach((app) => {
@@ -166,66 +149,93 @@ export default function AnalyticsPage() {
         return Object.entries(counts)
             .filter(([, value]) => value > 0)
             .map(([status, value]) => ({
-                name: STATUS_CONFIG[status as ApplicationStatus].label,
+                name: STATUS_CONFIG[status as ApplicationStatus]?.label || status,
                 value,
-                color: FUNNEL_COLORS[status as ApplicationStatus],
+                color: FUNNEL_COLORS[status as ApplicationStatus] || "#6b7280",
             }));
     }, [applications]);
 
-    if (!analytics || !applications) {
+    // Loading state
+    if (applications === undefined) {
         return (
-            <div className="min-h-screen p-8 flex items-center justify-center">
-                <div className="animate-pulse text-muted-foreground">Loading analytics...</div>
+            <div className="min-h-screen flex items-center justify-center bg-zinc-950">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center gap-4"
+                >
+                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                    <p className="text-zinc-400">Loading analytics...</p>
+                </motion.div>
+            </div>
+        );
+    }
+
+    // Empty state
+    if (!applications || applications.length === 0) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-8">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center max-w-md"
+                >
+                    <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center mb-6 shadow-lg">
+                        <BarChart3 className="w-8 h-8 text-white" />
+                    </div>
+                    <h2 className="text-2xl font-bold mb-2 text-white">No Data Yet</h2>
+                    <p className="text-zinc-400 mb-6">
+                        Start adding applications to see your analytics and track your job search performance.
+                    </p>
+                </motion.div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen p-8">
+        <div className="min-h-screen p-6 md:p-8 bg-zinc-950">
             <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="max-w-7xl mx-auto space-y-8"
+                className="max-w-7xl mx-auto space-y-6"
             >
                 {/* Header */}
                 <motion.div variants={itemVariants}>
-                    <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
-                    <p className="text-muted-foreground mt-1">
-                        Track your job search performance
-                    </p>
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">Analytics</h1>
+                    <p className="text-zinc-400 mt-1">Track your job search performance</p>
                 </motion.div>
 
                 {/* Key Metrics */}
-                <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <MetricCard
                         title="Response Rate"
-                        value={`${analytics.responseRate}%`}
-                        subtitle={`${analytics.applied} applications sent`}
+                        value={`${analytics?.responseRate || 0}%`}
+                        subtitle={`${analytics?.applied || 0} applications sent`}
                         icon={<MessageSquare className="w-5 h-5" />}
-                        trend={analytics.responseRate > 20 ? "up" : "neutral"}
+                        trend={(analytics?.responseRate || 0) > 20 ? "up" : "neutral"}
                         color="blue"
                     />
                     <MetricCard
                         title="Interview Rate"
-                        value={`${analytics.interviewRate}%`}
+                        value={`${analytics?.interviewRate || 0}%`}
                         subtitle={`${progress?.totalInterviews ?? 0} total interviews`}
                         icon={<Briefcase className="w-5 h-5" />}
-                        trend={analytics.interviewRate > 10 ? "up" : "neutral"}
+                        trend={(analytics?.interviewRate || 0) > 10 ? "up" : "neutral"}
                         color="violet"
                     />
                     <MetricCard
                         title="Avg. Response Time"
-                        value={`${analytics.avgTimeToResponse} days`}
+                        value={`${analytics?.avgTimeToResponse || 0} days`}
                         subtitle="Time to first response"
                         icon={<Clock className="w-5 h-5" />}
-                        trend={analytics.avgTimeToResponse < 7 ? "up" : "down"}
+                        trend={(analytics?.avgTimeToResponse || 0) < 7 ? "up" : "down"}
                         color="amber"
                     />
                     <MetricCard
                         title="Offers Received"
                         value={progress?.totalOffers ?? 0}
-                        subtitle={`${analytics.total} total applications`}
+                        subtitle={`${analytics?.total || 0} total applications`}
                         icon={<CheckCircle2 className="w-5 h-5" />}
                         trend="neutral"
                         color="emerald"
@@ -235,158 +245,124 @@ export default function AnalyticsPage() {
                 {/* Charts Row */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Weekly Activity */}
-                    <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6">
-                        <h3 className="text-lg font-semibold mb-6">Weekly Activity</h3>
-                        <ResponsiveContainer width="100%" height={280}>
-                            <AreaChart data={weeklyTrends}>
-                                <defs>
-                                    <linearGradient id="colorApps" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                    </linearGradient>
-                                    <linearGradient id="colorInterviews" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                                <XAxis
-                                    dataKey="week"
-                                    tick={{ fill: "#71717a", fontSize: 12 }}
-                                    axisLine={{ stroke: "#27272a" }}
-                                />
-                                <YAxis
-                                    tick={{ fill: "#71717a", fontSize: 12 }}
-                                    axisLine={{ stroke: "#27272a" }}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: "#141416",
-                                        border: "1px solid #27272a",
-                                        borderRadius: "8px",
-                                    }}
-                                    labelStyle={{ color: "#fafafa" }}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="applications"
-                                    stroke="#3b82f6"
-                                    fill="url(#colorApps)"
-                                    strokeWidth={2}
-                                    name="Applications"
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="interviews"
-                                    stroke="#8b5cf6"
-                                    fill="url(#colorInterviews)"
-                                    strokeWidth={2}
-                                    name="Interviews"
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                    <motion.div variants={itemVariants} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-6">Weekly Activity</h3>
+                        {weeklyTrends.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={280}>
+                                <AreaChart data={weeklyTrends}>
+                                    <defs>
+                                        <linearGradient id="colorApps" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                        </linearGradient>
+                                        <linearGradient id="colorInterviews" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                                    <XAxis dataKey="week" tick={{ fill: "#71717a", fontSize: 12 }} axisLine={{ stroke: "#27272a" }} />
+                                    <YAxis tick={{ fill: "#71717a", fontSize: 12 }} axisLine={{ stroke: "#27272a" }} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
+                                        labelStyle={{ color: "#fafafa" }}
+                                    />
+                                    <Area type="monotone" dataKey="applications" stroke="#3b82f6" fill="url(#colorApps)" strokeWidth={2} name="Applications" />
+                                    <Area type="monotone" dataKey="interviews" stroke="#8b5cf6" fill="url(#colorInterviews)" strokeWidth={2} name="Interviews" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-[280px] flex items-center justify-center text-zinc-500">
+                                No weekly data yet
+                            </div>
+                        )}
                     </motion.div>
 
                     {/* Status Distribution */}
-                    <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6">
-                        <h3 className="text-lg font-semibold mb-6">Status Distribution</h3>
-                        <ResponsiveContainer width="100%" height={280}>
-                            <PieChart>
-                                <Pie
-                                    data={statusDistribution}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={100}
-                                    paddingAngle={2}
-                                    dataKey="value"
-                                >
-                                    {statusDistribution.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                    <motion.div variants={itemVariants} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-6">Status Distribution</h3>
+                        {statusDistribution.length > 0 ? (
+                            <>
+                                <ResponsiveContainer width="100%" height={220}>
+                                    <PieChart>
+                                        <Pie
+                                            data={statusDistribution}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={50}
+                                            outerRadius={85}
+                                            paddingAngle={2}
+                                            dataKey="value"
+                                        >
+                                            {statusDistribution.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
+                                            formatter={(value: number) => [`${value} applications`, ""]}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                <div className="flex flex-wrap gap-3 mt-2 justify-center">
+                                    {statusDistribution.map((item) => (
+                                        <div key={item.name} className="flex items-center gap-1.5">
+                                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                                            <span className="text-xs text-zinc-400">{item.name}</span>
+                                        </div>
                                     ))}
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: "#141416",
-                                        border: "1px solid #27272a",
-                                        borderRadius: "8px",
-                                    }}
-                                    formatter={(value: number) => [`${value} applications`, ""]}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        {/* Legend */}
-                        <div className="flex flex-wrap gap-3 mt-4 justify-center">
-                            {statusDistribution.map((item) => (
-                                <div key={item.name} className="flex items-center gap-1.5">
-                                    <div
-                                        className="w-2.5 h-2.5 rounded-full"
-                                        style={{ backgroundColor: item.color }}
-                                    />
-                                    <span className="text-xs text-muted-foreground">{item.name}</span>
                                 </div>
-                            ))}
-                        </div>
+                            </>
+                        ) : (
+                            <div className="h-[280px] flex items-center justify-center text-zinc-500">
+                                No status data yet
+                            </div>
+                        )}
                     </motion.div>
                 </div>
 
                 {/* Funnel Chart */}
-                <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6">
-                    <h3 className="text-lg font-semibold mb-6">Application Funnel</h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={funnelData} layout="vertical">
-                            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
-                            <XAxis type="number" tick={{ fill: "#71717a", fontSize: 12 }} />
-                            <YAxis
-                                dataKey="name"
-                                type="category"
-                                tick={{ fill: "#71717a", fontSize: 12 }}
-                                width={100}
-                            />
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: "#141416",
-                                    border: "1px solid #27272a",
-                                    borderRadius: "8px",
-                                }}
-                                formatter={(value: number) => [`${value} applications`, ""]}
-                            />
-                            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                                {funnelData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+                <motion.div variants={itemVariants} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+                    <h3 className="text-lg font-semibold text-white mb-6">Application Funnel</h3>
+                    {funnelData.length > 0 && funnelData.some(d => d.value > 0) ? (
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={funnelData} layout="vertical">
+                                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
+                                <XAxis type="number" tick={{ fill: "#71717a", fontSize: 12 }} />
+                                <YAxis dataKey="name" type="category" tick={{ fill: "#71717a", fontSize: 12 }} width={100} />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
+                                    formatter={(value: number) => [`${value} applications`, ""]}
+                                />
+                                <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                                    {funnelData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-[300px] flex items-center justify-center text-zinc-500">
+                            No funnel data yet
+                        </div>
+                    )}
                 </motion.div>
 
                 {/* Platform Performance */}
-                <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6">
-                    <h3 className="text-lg font-semibold mb-6">Platform Performance</h3>
+                <motion.div variants={itemVariants} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+                    <h3 className="text-lg font-semibold text-white mb-6">Platform Performance</h3>
                     {platformData.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-8">
-                            Not enough data yet
-                        </p>
+                        <p className="text-zinc-500 text-center py-8">Not enough data yet</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-border">
-                                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                                            Platform
-                                        </th>
-                                        <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">
-                                            Applications
-                                        </th>
-                                        <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">
-                                            Response Rate
-                                        </th>
-                                        <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">
-                                            Interview Rate
-                                        </th>
-                                        <th className="py-3 px-4 text-sm font-medium text-muted-foreground">
-                                            Performance
-                                        </th>
+                                    <tr className="border-b border-zinc-800">
+                                        <th className="text-left py-3 px-4 text-sm font-medium text-zinc-400">Platform</th>
+                                        <th className="text-right py-3 px-4 text-sm font-medium text-zinc-400">Applications</th>
+                                        <th className="text-right py-3 px-4 text-sm font-medium text-zinc-400">Response Rate</th>
+                                        <th className="text-right py-3 px-4 text-sm font-medium text-zinc-400">Interview Rate</th>
+                                        <th className="py-3 px-4 text-sm font-medium text-zinc-400">Performance</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -396,46 +372,31 @@ export default function AnalyticsPage() {
                                             initial={{ opacity: 0, x: -20 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: index * 0.05 }}
-                                            className="border-b border-border/50 hover:bg-secondary/30 transition-colors"
+                                            className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors"
                                         >
-                                            <td className="py-3 px-4 font-medium">{platform.name}</td>
-                                            <td className="py-3 px-4 text-right">{platform.total}</td>
+                                            <td className="py-3 px-4 font-medium text-white">{platform.name}</td>
+                                            <td className="py-3 px-4 text-right text-zinc-300">{platform.total}</td>
                                             <td className="py-3 px-4 text-right">
-                                                <span
-                                                    className={cn(
-                                                        platform.responseRate > 20
-                                                            ? "text-emerald-400"
-                                                            : platform.responseRate > 10
-                                                                ? "text-amber-400"
-                                                                : "text-muted-foreground"
-                                                    )}
-                                                >
+                                                <span className={cn(
+                                                    platform.responseRate > 20 ? "text-emerald-400" :
+                                                        platform.responseRate > 10 ? "text-amber-400" : "text-zinc-400"
+                                                )}>
                                                     {platform.responseRate}%
                                                 </span>
                                             </td>
                                             <td className="py-3 px-4 text-right">
-                                                <span
-                                                    className={cn(
-                                                        platform.interviewRate > 15
-                                                            ? "text-emerald-400"
-                                                            : platform.interviewRate > 5
-                                                                ? "text-amber-400"
-                                                                : "text-muted-foreground"
-                                                    )}
-                                                >
+                                                <span className={cn(
+                                                    platform.interviewRate > 15 ? "text-emerald-400" :
+                                                        platform.interviewRate > 5 ? "text-amber-400" : "text-zinc-400"
+                                                )}>
                                                     {platform.interviewRate}%
                                                 </span>
                                             </td>
                                             <td className="py-3 px-4">
-                                                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                                                <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
                                                     <div
-                                                        className="h-full bg-primary rounded-full transition-all"
-                                                        style={{
-                                                            width: `${Math.min(
-                                                                100,
-                                                                (platform.responseRate + platform.interviewRate) / 2
-                                                            )}%`,
-                                                        }}
+                                                        className="h-full bg-blue-500 rounded-full transition-all"
+                                                        style={{ width: `${Math.min(100, (platform.responseRate + platform.interviewRate) / 2)}%` }}
                                                     />
                                                 </div>
                                             </td>
@@ -469,30 +430,20 @@ function MetricCard({ title, value, subtitle, icon, trend, color }: MetricCardPr
     };
 
     return (
-        <div className="glass-card rounded-2xl p-5">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 hover:border-zinc-700 transition-colors">
             <div className="flex items-start justify-between mb-4">
                 <div className={cn("p-2.5 rounded-xl", colorClasses[color])}>{icon}</div>
                 {trend !== "neutral" && (
-                    <div
-                        className={cn(
-                            "flex items-center gap-1 text-xs font-medium",
-                            trend === "up" ? "text-emerald-400" : "text-red-400"
-                        )}
-                    >
-                        {trend === "up" ? (
-                            <TrendingUp className="w-3.5 h-3.5" />
-                        ) : (
-                            <TrendingDown className="w-3.5 h-3.5" />
-                        )}
+                    <div className={cn("flex items-center gap-1 text-xs font-medium", trend === "up" ? "text-emerald-400" : "text-red-400")}>
+                        {trend === "up" ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                     </div>
                 )}
             </div>
             <div className="space-y-1">
-                <p className="text-2xl font-bold">{value}</p>
-                <p className="text-sm text-muted-foreground">{title}</p>
-                <p className="text-xs text-muted-foreground/70">{subtitle}</p>
+                <p className="text-2xl font-bold text-white">{value}</p>
+                <p className="text-sm text-zinc-300">{title}</p>
+                <p className="text-xs text-zinc-500">{subtitle}</p>
             </div>
         </div>
     );
 }
-
