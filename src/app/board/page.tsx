@@ -8,6 +8,7 @@ import {
     closestCorners,
     KeyboardSensor,
     PointerSensor,
+    useDroppable,
     useSensor,
     useSensors,
     type DragStartEvent,
@@ -159,12 +160,16 @@ function KanbanColumn({
     applications: Application[];
     isOver: boolean;
 }) {
+    const { setNodeRef, isOver: isOverDroppable } = useDroppable({ id: stage.id });
+    const isActive = isOver || isOverDroppable;
+
     return (
         <div
+            ref={setNodeRef}
             className="flex-shrink-0 w-72 flex flex-col rounded-xl transition-all"
             style={{
-                backgroundColor: isOver ? 'rgba(59, 130, 246, 0.05)' : '#0f0f10',
-                border: isOver ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid #1f1f23',
+                backgroundColor: isActive ? 'rgba(59, 130, 246, 0.05)' : '#0f0f10',
+                border: isActive ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid #1f1f23',
                 maxHeight: 'calc(100vh - 200px)',
             }}
         >
