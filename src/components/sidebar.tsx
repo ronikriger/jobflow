@@ -9,13 +9,10 @@ import {
     BarChart3,
     Settings,
     Flame,
-    Sparkles,
     Command,
     Zap,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useUserProgress, useWeeklyStats } from "@/lib/hooks";
-import { LEVEL_THRESHOLDS } from "@/lib/types";
 
 const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -29,23 +26,23 @@ export function Sidebar() {
     const progress = useUserProgress();
     const weeklyStats = useWeeklyStats();
 
-    const currentThreshold = LEVEL_THRESHOLDS[progress?.level ?? 1] || 0;
-    const nextThreshold = LEVEL_THRESHOLDS[(progress?.level ?? 1) + 1] || currentThreshold;
-    const xpInLevel = (progress?.xp ?? 0) - currentThreshold;
-    const xpForLevel = nextThreshold - currentThreshold;
-    const levelProgress = xpForLevel > 0 ? (xpInLevel / xpForLevel) * 100 : 0;
-
     return (
-        <aside className="w-64 border-r border-border bg-card/50 backdrop-blur-xl flex flex-col">
+        <aside
+            className="w-64 flex flex-col"
+            style={{ backgroundColor: '#0f0f10', borderRight: '1px solid #27272a' }}
+        >
             {/* Logo */}
             <div className="p-6">
                 <Link href="/" className="flex items-center gap-3 group">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg group-hover:shadow-blue-500/25 transition-shadow">
+                    <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
+                        style={{ background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)' }}
+                    >
                         <Zap className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h1 className="font-bold text-lg tracking-tight">JobFlow</h1>
-                        <p className="text-xs text-muted-foreground">Job Search Tracker</p>
+                        <h1 className="font-bold text-lg tracking-tight" style={{ color: 'white' }}>JobFlow</h1>
+                        <p className="text-xs" style={{ color: '#71717a' }}>Job Search Tracker</p>
                     </div>
                 </Link>
             </div>
@@ -60,28 +57,28 @@ export function Sidebar() {
                         <Link
                             key={item.href}
                             href={item.href}
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 relative group",
-                                isActive
-                                    ? "text-white"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-                            )}
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 relative"
+                            style={{
+                                color: isActive ? 'white' : '#a1a1aa',
+                                backgroundColor: isActive ? 'transparent' : 'transparent',
+                            }}
                         >
                             {isActive && (
                                 <motion.div
                                     layoutId="sidebar-active"
-                                    className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/20"
+                                    className="absolute inset-0 rounded-xl shadow-lg"
+                                    style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}
                                     transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
                                 />
                             )}
-                            <item.icon className={cn("w-5 h-5 relative z-10", isActive && "text-white")} />
+                            <item.icon className="w-5 h-5 relative z-10" style={{ color: isActive ? 'white' : '#a1a1aa' }} />
                             <span className="relative z-10">{item.label}</span>
                         </Link>
                     );
                 })}
 
                 {/* Keyboard shortcut hint */}
-                <div className="pt-6 mt-6 border-t border-border">
+                <div className="pt-6 mt-6" style={{ borderTop: '1px solid #27272a' }}>
                     <button
                         onClick={() => {
                             const event = new KeyboardEvent("keydown", {
@@ -90,11 +87,15 @@ export function Sidebar() {
                             });
                             document.dispatchEvent(event);
                         }}
-                        className="flex items-center gap-3 px-4 py-3 w-full text-sm text-muted-foreground hover:text-foreground transition-colors rounded-xl hover:bg-secondary/50"
+                        className="flex items-center gap-3 px-4 py-3 w-full text-sm transition-colors rounded-xl"
+                        style={{ color: '#a1a1aa' }}
                     >
                         <Command className="w-5 h-5" />
                         <span>Quick actions</span>
-                        <kbd className="ml-auto px-2 py-1 text-xs rounded-md bg-secondary border border-border font-mono">
+                        <kbd
+                            className="ml-auto px-2 py-1 text-xs rounded-md font-mono"
+                            style={{ backgroundColor: '#27272a', border: '1px solid #3f3f46', color: '#a1a1aa' }}
+                        >
                             ⌘K
                         </kbd>
                     </button>
@@ -102,44 +103,46 @@ export function Sidebar() {
             </nav>
 
             {/* Progress section */}
-            <div className="p-4 space-y-4 border-t border-border">
+            <div className="p-4 space-y-4" style={{ borderTop: '1px solid #27272a' }}>
                 {/* Weekly Goal */}
                 <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Weekly Goal</span>
-                        <span className="font-semibold">
+                        <span style={{ color: '#a1a1aa' }}>Weekly Goal</span>
+                        <span className="font-semibold" style={{ color: 'white' }}>
                             {weeklyStats.applied}/{weeklyStats.goal}
                         </span>
                     </div>
-                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#27272a' }}>
                         <motion.div
                             initial={{ width: 0 }}
-                            animate={{ width: `${weeklyStats.percentage}%` }}
+                            animate={{ width: `${Math.min(weeklyStats.percentage, 100)}%` }}
                             transition={{ duration: 0.5, ease: "easeOut" }}
-                            className={cn(
-                                "h-full rounded-full transition-colors",
-                                weeklyStats.percentage >= 100
-                                    ? "bg-emerald-500"
-                                    : "bg-blue-500"
-                            )}
+                            className="h-full rounded-full"
+                            style={{ backgroundColor: weeklyStats.percentage >= 100 ? '#10b981' : '#3b82f6' }}
                         />
                     </div>
                 </div>
 
                 {/* Level & XP */}
-                <div className="glass-card rounded-xl p-4 space-y-3">
+                <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-bold shadow-lg">
+                            <div
+                                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold shadow-lg"
+                                style={{ background: 'linear-gradient(135deg, #f59e0b, #ea580c)' }}
+                            >
                                 {progress?.level ?? 1}
                             </div>
                             <div>
-                                <p className="text-xs text-muted-foreground">Level</p>
-                                <p className="text-sm font-semibold">{progress?.xp ?? 0} XP</p>
+                                <p className="text-xs" style={{ color: '#71717a' }}>Level</p>
+                                <p className="text-sm font-semibold" style={{ color: 'white' }}>{progress?.xp ?? 0} XP</p>
                             </div>
                         </div>
                         {(progress?.currentStreak ?? 0) > 0 && (
-                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-orange-500/15 text-orange-500">
+                            <div
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
+                                style={{ backgroundColor: 'rgba(249, 115, 22, 0.15)', color: '#f97316' }}
+                            >
                                 <Flame className="w-4 h-4" />
                                 <span className="text-sm font-semibold">{progress?.currentStreak}</span>
                             </div>
@@ -148,16 +151,17 @@ export function Sidebar() {
 
                     {/* XP Progress */}
                     <div className="space-y-1.5">
-                        <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#27272a' }}>
                             <motion.div
                                 initial={{ width: 0 }}
-                                animate={{ width: `${levelProgress}%` }}
+                                animate={{ width: `${(progress?.xp ?? 0) % 100}%` }}
                                 transition={{ duration: 0.5, ease: "easeOut" }}
-                                className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"
+                                className="h-full rounded-full"
+                                style={{ background: 'linear-gradient(90deg, #f59e0b, #ea580c)' }}
                             />
                         </div>
-                        <p className="text-xs text-muted-foreground text-right">
-                            {Math.round(xpInLevel)}/{xpForLevel} to level {(progress?.level ?? 1) + 1}
+                        <p className="text-xs text-right" style={{ color: '#71717a' }}>
+                            {(progress?.xp ?? 0) % 100}/100 to level {(progress?.level ?? 1) + 1}
                         </p>
                     </div>
                 </div>
