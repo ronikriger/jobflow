@@ -28,6 +28,7 @@ import {
     useUserProgress,
     useActiveApplications,
     markFollowUpSent,
+    markPrepDone,
 } from "@/lib/hooks";
 import { ApplicationCardCompact } from "@/components/application-card";
 import { AddApplicationModal } from "@/components/add-application-modal";
@@ -38,11 +39,22 @@ import Link from "next/link";
 export default function DashboardPage() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [isClient, setIsClient] = useState(false);
+    const [dismissedActionIds, setDismissedActionIds] = useState<Set<string>>(new Set());
 
     const weeklyStats = useWeeklyStats();
     const dailyStats = useDailyStats();
     const staleApps = useStaleApplications();
     const nextActions = useNextActions();
+    const visibleActions = nextActions.filter((action) => !dismissedActionIds.has(action.id));
+
+    const handleActionDone = (id: string) => {
+        setDismissedActionIds((prev) => {
+            const next = new Set(prev);
+            next.add(id);
+            return next;
+        });
+    };
+
     const progress = useUserProgress();
     const applications = useActiveApplications();
 
@@ -260,15 +272,15 @@ export default function DashboardPage() {
                                 <Clock className="w-5 h-5" style={{ color: '#71717a' }} />
                                 Next Actions
                             </h2>
-                            {nextActions.length > 0 && (
+                            {visibleActions.length > 0 && (
                                 <span className="text-sm px-2 py-1 rounded-lg" style={{ color: '#a1a1aa', backgroundColor: '#27272a' }}>
-                                    {nextActions.length} pending
+                                    {visibleActions.length} pending
                                 </span>
                             )}
                         </div>
 
                         <div className="space-y-3">
-                            {nextActions.length === 0 ? (
+                            {visibleActions.length === 0 ? (
                                 <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}>
                                     <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
                                         <CalendarCheck className="w-7 h-7" style={{ color: '#10b981' }} />
@@ -277,8 +289,8 @@ export default function DashboardPage() {
                                     <p className="text-sm" style={{ color: '#71717a' }}>No pending actions. Add more applications to keep momentum.</p>
                                 </div>
                             ) : (
-                                nextActions.slice(0, 5).map((action, index) => (
-                                    <NextActionCard key={action.id} action={action} index={index} />
+                                visibleActions.slice(0, 5).map((action, index) => (
+                                    <NextActionCard key={action.id} action={action} index={index} onDone={handleActionDone} />
                                 ))
                             )}
                         </div>
@@ -385,7 +397,7 @@ export default function DashboardPage() {
     );
 }
 
-function NextActionCard({ action, index }: { action: NextAction; index: number }) {
+function NextActionCard({ action, index, onDone }: { action: NextAction; index: number; onDone: (id: string) => void }) {
     const iconMap = {
         "follow-up": MessageSquare,
         prep: FileCheck,
@@ -404,7 +416,10 @@ function NextActionCard({ action, index }: { action: NextAction; index: number }
     const handleAction = async () => {
         if (action.type === "follow-up") {
             await markFollowUpSent(action.application.id!);
+        } else if (action.type === "prep") {
+            await markPrepDone(action.application.id!);
         }
+        onDone(action.id);
     };
 
     return (

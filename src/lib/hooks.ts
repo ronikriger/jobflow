@@ -334,3 +334,25 @@ export async function markFollowUpSent(applicationId: number) {
     await updateStreak();
 }
 
+// Mark interview prep as done (adds a note event and XP)
+export async function markPrepDone(applicationId: number) {
+    const now = new Date();
+
+    await db.events.add({
+        applicationId,
+        type: "note",
+        title: "Prepared for interview",
+        date: now,
+        createdAt: now,
+        completed: true,
+    });
+
+    await db.applications.update(applicationId, {
+        lastTouchAt: now,
+        updatedAt: now,
+    });
+
+    await addXP(5);
+    await updateStreak();
+}
+
