@@ -2,25 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { initializeDefaults } from "@/lib/db";
+import { ThemeProvider } from "next-themes";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-    const [isReady, setIsReady] = useState(false);
+    const [isDbReady, setIsDbReady] = useState(false);
 
     useEffect(() => {
         async function init() {
             try {
+                // Initialize local DB for fallback/migration
                 await initializeDefaults();
-                setIsReady(true);
+                setIsDbReady(true);
             } catch (error) {
                 console.error("Failed to initialize database:", error);
-                // Still set ready to true to show the app
-                setIsReady(true);
+                setIsDbReady(true);
             }
         }
         init();
     }, []);
 
-    if (!isReady) {
+    if (!isDbReady) {
         return (
             <div
                 className="min-h-screen flex items-center justify-center"
@@ -46,5 +47,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         );
     }
 
-    return <>{children}</>;
+    return (
+        <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
+            {children}
+        </ThemeProvider>
+    );
 }
+

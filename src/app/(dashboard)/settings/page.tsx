@@ -7,12 +7,12 @@ import {
     Clock,
     Download,
     Trash2,
-    Moon,
-    Sun,
     RefreshCw,
     AlertTriangle,
+    Upload,
 } from "lucide-react";
 import { useSettings, updateSettings } from "@/lib/hooks";
+import { useUser } from "@stackframe/stack";
 import { exportToCSV, db, initializeDefaults } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +30,7 @@ const itemVariants = {
 };
 
 export default function SettingsPage() {
+    const user = useUser();
     const settings = useSettings();
     const [localSettings, setLocalSettings] = useState({
         weeklyGoal: 8,
@@ -59,7 +60,7 @@ export default function SettingsPage() {
 
     const handleSave = async () => {
         setSaving(true);
-        await updateSettings(localSettings);
+        await updateSettings(localSettings, !!user);
         setTimeout(() => setSaving(false), 500);
     };
 
@@ -74,6 +75,22 @@ export default function SettingsPage() {
         window.URL.revokeObjectURL(url);
     };
 
+    const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Dynamic import to avoid SSR issues with db
+        const { importFromCSV } = await import("@/lib/db");
+        const result = await importFromCSV(file);
+
+        if (result.success) {
+            alert(`Successfully imported ${result.count} applications!`);
+            window.location.reload();
+        } else {
+            alert("Failed to import data. Please check the CSV format.");
+        }
+    };
+
     const handleReset = async () => {
         await db.applications.clear();
         await db.events.clear();
@@ -86,11 +103,7 @@ export default function SettingsPage() {
         window.location.reload();
     };
 
-    const toggleDarkMode = () => {
-        const newDarkMode = !localSettings.darkMode;
-        setLocalSettings({ ...localSettings, darkMode: newDarkMode });
-        document.documentElement.classList.toggle("dark", newDarkMode);
-    };
+
 
     return (
         <div className="min-h-screen p-8">
@@ -283,42 +296,6 @@ export default function SettingsPage() {
                     </div>
                 </motion.div>
 
-                {/* Appearance */}
-                <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            {localSettings.darkMode ? (
-                                <div className="p-2 rounded-lg bg-indigo-500/10">
-                                    <Moon className="w-5 h-5 text-indigo-400" />
-                                </div>
-                            ) : (
-                                <div className="p-2 rounded-lg bg-amber-500/10">
-                                    <Sun className="w-5 h-5 text-amber-400" />
-                                </div>
-                            )}
-                            <div>
-                                <h2 className="font-semibold">Appearance</h2>
-                                <p className="text-sm text-muted-foreground">
-                                    {localSettings.darkMode ? "Dark mode" : "Light mode"}
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={toggleDarkMode}
-                            className={cn(
-                                "w-14 h-8 rounded-full p-1 transition-colors",
-                                localSettings.darkMode ? "bg-primary" : "bg-secondary"
-                            )}
-                        >
-                            <motion.div
-                                className="w-6 h-6 rounded-full bg-white shadow-md"
-                                animate={{ x: localSettings.darkMode ? 24 : 0 }}
-                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                            />
-                        </button>
-                    </div>
-                </motion.div>
-
                 {/* Data Management */}
                 <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6 space-y-4">
                     <h2 className="font-semibold">Data Management</h2>
@@ -331,6 +308,21 @@ export default function SettingsPage() {
                             <Download className="w-4 h-4" />
                             Export to CSV
                         </button>
+
+                        <div className="relative">
+                            <input
+                                type="file"
+                                accept=".csv"
+                                onChange={handleImport}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                            <button
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors font-medium text-sm"
+                            >
+                                <Upload className="w-4 h-4" />
+                                Import CSV
+                            </button>
+                        </div>
 
                         <button
                             onClick={() => setShowResetConfirm(true)}

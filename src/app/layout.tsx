@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { StackProvider, StackTheme } from "@stackframe/stack";
+import { stackClientApp } from "../stack/client";
 import { Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
-import { Sidebar } from "@/components/sidebar";
-import { CommandPalette } from "@/components/command-palette";
+import { Analytics } from "@vercel/analytics/next";
+import { DataMigration } from "@/components/data-migration";
 
 const instrumentSans = Instrument_Sans({
     subsets: ["latin"],
@@ -20,6 +22,12 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
     title: "JobFlow | Track Your Job Search",
     description: "Premium job application tracker with gamification",
+    icons: {
+        icon: "/favicon.svg",
+        shortcut: "/favicon.svg",
+        apple: "/favicon.svg",
+    },
+    manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -28,21 +36,18 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" className="dark" style={{ backgroundColor: '#09090b' }}>
+        <html lang="en" className="dark" suppressHydrationWarning>
             <body
-                className={`${instrumentSans.variable} ${jetbrainsMono.variable} font-sans antialiased`}
-                style={{ backgroundColor: '#09090b', color: '#fafafa', minHeight: '100vh' }}
-            >
+                className={`${instrumentSans.variable} ${jetbrainsMono.variable} font-sans antialiased bg-zinc-950 text-white`}
+            ><StackProvider app={stackClientApp}><StackTheme>
                 <Providers>
-                    <div className="flex min-h-screen" style={{ backgroundColor: '#09090b' }}>
-                        <Sidebar />
-                        <main className="flex-1 overflow-auto" style={{ backgroundColor: '#09090b' }}>
-                            {children}
-                        </main>
-                    </div>
-                    <CommandPalette />
+                    <DataMigration />
+                    {children}
                 </Providers>
-            </body>
+                <Analytics />
+            </StackTheme></StackProvider></body>
         </html>
     );
 }
+
+

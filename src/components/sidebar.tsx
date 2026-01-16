@@ -13,9 +13,10 @@ import {
     Zap,
 } from "lucide-react";
 import { useUserProgress, useWeeklyStats } from "@/lib/hooks";
+import { AuthButton } from "./auth-button";
 
 const navItems = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/home", label: "Dashboard", icon: LayoutDashboard },
     { href: "/board", label: "Pipeline", icon: Kanban },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/settings", label: "Settings", icon: Settings },
@@ -32,11 +33,11 @@ export function Sidebar() {
             style={{ backgroundColor: '#0f0f10', borderRight: '1px solid #27272a' }}
         >
             {/* Logo */}
-            <div className="p-6">
+            <div className="p-6 flex items-center justify-between">
                 <Link href="/" className="flex items-center gap-3 group">
                     <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
-                        style={{ background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)' }}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-105"
+                        style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%)' }}
                     >
                         <Zap className="w-5 h-5 text-white" />
                     </div>
@@ -45,6 +46,11 @@ export function Sidebar() {
                         <p className="text-xs" style={{ color: '#71717a' }}>Job Search Tracker</p>
                     </div>
                 </Link>
+            </div>
+
+            {/* Auth Button */}
+            <div className="px-4 pb-4">
+                <AuthButton />
             </div>
 
             {/* Navigation */}
@@ -57,10 +63,9 @@ export function Sidebar() {
                         <Link
                             key={item.href}
                             href={item.href}
-                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 relative"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 relative hover:bg-white/5"
                             style={{
                                 color: isActive ? 'white' : '#a1a1aa',
-                                backgroundColor: isActive ? 'transparent' : 'transparent',
                             }}
                         >
                             {isActive && (
@@ -117,14 +122,14 @@ export function Sidebar() {
                             initial={{ width: 0 }}
                             animate={{ width: `${Math.min(weeklyStats.percentage, 100)}%` }}
                             transition={{ duration: 0.5, ease: "easeOut" }}
-                            className="h-full rounded-full"
-                            style={{ backgroundColor: weeklyStats.percentage >= 100 ? '#10b981' : '#3b82f6' }}
+                            className="h-full rounded-full progress-animated"
+                            style={{ background: weeklyStats.percentage >= 100 ? 'linear-gradient(90deg, #10b981 0%, #34d399 100%)' : 'linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)' }}
                         />
                     </div>
                 </div>
 
                 {/* Level & XP */}
-                <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}>
+                <div className="rounded-xl p-4 space-y-3 gradient-border" style={{ backgroundColor: '#18181b' }}>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div

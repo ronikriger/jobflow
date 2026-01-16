@@ -45,7 +45,7 @@ const FUNNEL_COLORS: Record<ApplicationStatus, string> = {
 
 export default function AnalyticsPage() {
     const [isClient, setIsClient] = useState(false);
-    const applications = useApplications();
+    const { apps: applications, loading } = useApplications();
     const progress = useUserProgress();
 
     useEffect(() => {
@@ -133,7 +133,7 @@ export default function AnalyticsPage() {
             }));
     }, [applications]);
 
-    if (!isClient) {
+    if (!isClient || loading) {
         return (
             <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#09090b' }}>
                 <div className="flex flex-col items-center gap-4">

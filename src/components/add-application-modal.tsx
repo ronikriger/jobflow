@@ -7,13 +7,16 @@ import { addApplication } from "@/lib/hooks";
 import { parseCompanyFromUrl, detectPlatformFromUrl, cn } from "@/lib/utils";
 import type { Platform, ApplicationStatus } from "@/lib/types";
 import { PLATFORM_CONFIG } from "@/lib/types";
+import { useUser } from "@stackframe/stack";
 
 interface AddApplicationModalProps {
     open: boolean;
     onClose: () => void;
+    onSuccess?: () => void;
 }
 
-export function AddApplicationModal({ open, onClose }: AddApplicationModalProps) {
+export function AddApplicationModal({ open, onClose, onSuccess }: AddApplicationModalProps) {
+    const user = useUser();
     const [url, setUrl] = useState("");
     const [company, setCompany] = useState("");
     const [role, setRole] = useState("");
@@ -49,7 +52,7 @@ export function AddApplicationModal({ open, onClose }: AddApplicationModalProps)
                 url: url || undefined,
                 platform,
                 status,
-            });
+            }, !!user);  // Pass authentication state
 
             // Reset form
             setUrl("");
@@ -60,6 +63,7 @@ export function AddApplicationModal({ open, onClose }: AddApplicationModalProps)
             setPlatform("other");
             setStatus("applied");
 
+            onSuccess?.();  // Trigger refresh
             onClose();
         } catch (error) {
             console.error("Failed to add application:", error);
@@ -91,9 +95,9 @@ export function AddApplicationModal({ open, onClose }: AddApplicationModalProps)
                         transition={{ duration: 0.2 }}
                         className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg z-50 px-4"
                     >
-                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
                             {/* Header */}
-                            <div className="flex items-center justify-between p-6 border-b border-zinc-800">
+                            <div className="flex items-center justify-between p-6 border-b border-zinc-800 flex-shrink-0">
                                 <div>
                                     <h2 className="text-xl font-semibold text-white">Add Application</h2>
                                     <p className="text-sm text-zinc-400 mt-1">
@@ -108,151 +112,153 @@ export function AddApplicationModal({ open, onClose }: AddApplicationModalProps)
                                 </button>
                             </div>
 
-                            {/* Form */}
-                            <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                                {/* URL field with paste detection */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                                        <LinkIcon className="w-4 h-4 text-zinc-500" />
-                                        Job URL
-                                    </label>
-                                    <input
-                                        type="url"
-                                        value={url}
-                                        onChange={(e) => setUrl(e.target.value)}
-                                        placeholder="Paste job posting URL"
-                                        className={inputClassName}
-                                    />
-                                    {url && platform !== "other" && (
-                                        <motion.p
-                                            initial={{ opacity: 0, y: -5 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            className="text-xs text-zinc-500 flex items-center gap-1"
-                                        >
-                                            Detected: <span className="text-blue-400 font-medium">{PLATFORM_CONFIG[platform].label}</span>
-                                        </motion.p>
-                                    )}
-                                </div>
-
-                                {/* Company & Role row */}
-                                <div className="grid grid-cols-2 gap-4">
+                            {/* Scrollable Form Content */}
+                            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                                <div className="p-6 space-y-5 overflow-y-auto flex-1">
+                                    {/* URL field with paste detection */}
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                                            <Building2 className="w-4 h-4 text-zinc-500" />
-                                            Company *
+                                            <LinkIcon className="w-4 h-4 text-zinc-500" />
+                                            Job URL
                                         </label>
                                         <input
-                                            type="text"
-                                            value={company}
-                                            onChange={(e) => setCompany(e.target.value)}
-                                            placeholder="e.g. Stripe"
-                                            required
+                                            type="url"
+                                            value={url}
+                                            onChange={(e) => setUrl(e.target.value)}
+                                            placeholder="Paste job posting URL"
                                             className={inputClassName}
                                         />
+                                        {url && platform !== "other" && (
+                                            <motion.p
+                                                initial={{ opacity: 0, y: -5 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="text-xs text-zinc-500 flex items-center gap-1"
+                                            >
+                                                Detected: <span className="text-blue-400 font-medium">{PLATFORM_CONFIG[platform].label}</span>
+                                            </motion.p>
+                                        )}
                                     </div>
 
+                                    {/* Company & Role row */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                                                <Building2 className="w-4 h-4 text-zinc-500" />
+                                                Company *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={company}
+                                                onChange={(e) => setCompany(e.target.value)}
+                                                placeholder="e.g. Stripe"
+                                                required
+                                                className={inputClassName}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                                                <Briefcase className="w-4 h-4 text-zinc-500" />
+                                                Role *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={role}
+                                                onChange={(e) => setRole(e.target.value)}
+                                                placeholder="e.g. Software Engineer"
+                                                required
+                                                className={inputClassName}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Location & Salary row */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                                                <MapPin className="w-4 h-4 text-zinc-500" />
+                                                Location
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={location}
+                                                onChange={(e) => setLocation(e.target.value)}
+                                                placeholder="e.g. Remote, NYC"
+                                                className={inputClassName}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                                                <DollarSign className="w-4 h-4 text-zinc-500" />
+                                                Salary Range
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={salary}
+                                                onChange={(e) => setSalary(e.target.value)}
+                                                placeholder="e.g. $150k - $200k"
+                                                className={inputClassName}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Platform selector */}
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                                            <Briefcase className="w-4 h-4 text-zinc-500" />
-                                            Role *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={role}
-                                            onChange={(e) => setRole(e.target.value)}
-                                            placeholder="e.g. Software Engineer"
-                                            required
-                                            className={inputClassName}
-                                        />
+                                        <label className="text-sm font-medium text-zinc-300">Platform</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {(Object.entries(PLATFORM_CONFIG) as [Platform, { label: string }][]).map(([key, config]) => (
+                                                <button
+                                                    key={key}
+                                                    type="button"
+                                                    onClick={() => setPlatform(key)}
+                                                    className={cn(
+                                                        "px-3 py-1.5 rounded-lg text-sm font-medium transition-all border",
+                                                        platform === key
+                                                            ? "bg-blue-500 text-white border-blue-500"
+                                                            : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-400 hover:text-white"
+                                                    )}
+                                                >
+                                                    {config.label}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
 
-                                {/* Location & Salary row */}
-                                <div className="grid grid-cols-2 gap-4">
+                                    {/* Status selector */}
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                                            <MapPin className="w-4 h-4 text-zinc-500" />
-                                            Location
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={location}
-                                            onChange={(e) => setLocation(e.target.value)}
-                                            placeholder="e.g. Remote, NYC"
-                                            className={inputClassName}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                                            <DollarSign className="w-4 h-4 text-zinc-500" />
-                                            Salary Range
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={salary}
-                                            onChange={(e) => setSalary(e.target.value)}
-                                            placeholder="e.g. $150k - $200k"
-                                            className={inputClassName}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Platform selector */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-zinc-300">Platform</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {(Object.entries(PLATFORM_CONFIG) as [Platform, { label: string }][]).map(([key, config]) => (
+                                        <label className="text-sm font-medium text-zinc-300">Initial Status</label>
+                                        <div className="flex gap-2">
                                             <button
-                                                key={key}
                                                 type="button"
-                                                onClick={() => setPlatform(key)}
+                                                onClick={() => setStatus("saved")}
                                                 className={cn(
-                                                    "px-3 py-1.5 rounded-lg text-sm font-medium transition-all border",
-                                                    platform === key
-                                                        ? "bg-blue-500 text-white border-blue-500"
-                                                        : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-400 hover:text-white"
+                                                    "flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border",
+                                                    status === "saved"
+                                                        ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/50"
+                                                        : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-400"
                                                 )}
                                             >
-                                                {config.label}
+                                                Save for Later
                                             </button>
-                                        ))}
+                                            <button
+                                                type="button"
+                                                onClick={() => setStatus("applied")}
+                                                className={cn(
+                                                    "flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border",
+                                                    status === "applied"
+                                                        ? "bg-blue-500/20 text-blue-400 border-blue-500/50"
+                                                        : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-400"
+                                                )}
+                                            >
+                                                Applied
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Status selector */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-zinc-300">Initial Status</label>
-                                    <div className="flex gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setStatus("saved")}
-                                            className={cn(
-                                                "flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border",
-                                                status === "saved"
-                                                    ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/50"
-                                                    : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-400"
-                                            )}
-                                        >
-                                            Save for Later
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setStatus("applied")}
-                                            className={cn(
-                                                "flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border",
-                                                status === "applied"
-                                                    ? "bg-blue-500/20 text-blue-400 border-blue-500/50"
-                                                    : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-400"
-                                            )}
-                                        >
-                                            Applied
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Submit button */}
-                                <div className="flex gap-3 pt-2">
+                                {/* Sticky Submit buttons */}
+                                <div className="flex gap-3 p-6 border-t border-zinc-800 bg-zinc-900 flex-shrink-0">
                                     <button
                                         type="button"
                                         onClick={onClose}
@@ -264,13 +270,13 @@ export function AddApplicationModal({ open, onClose }: AddApplicationModalProps)
                                         type="submit"
                                         disabled={isSubmitting || !company || !role}
                                         className={cn(
-                                            "flex-1 px-4 py-3 rounded-xl font-medium transition-all",
+                                            "flex-1 px-4 py-3 rounded-xl font-semibold transition-all",
                                             isSubmitting || !company || !role
                                                 ? "bg-blue-500/50 text-white/50 cursor-not-allowed"
-                                                : "bg-blue-500 text-white hover:bg-blue-600"
+                                                : "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-lg"
                                         )}
                                     >
-                                        {isSubmitting ? "Adding..." : status === "saved" ? "Save Application" : "Add & Track"}
+                                        {isSubmitting ? "Adding..." : status === "saved" ? "Save Application" : "Add Application"}
                                     </button>
                                 </div>
                             </form>

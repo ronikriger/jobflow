@@ -1,82 +1,206 @@
 "use client";
 
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, getSettings, getUserProgress, addXP, checkAndAwardBadge, updateStreak } from "./db";
-import type { Application, ApplicationEvent, Contact, Settings, UserProgress, ApplicationStatus, BadgeType } from "./types";
+import { db, getSettings, getUserProgress, addXP, updateStreak } from "./db";
+import type { Application, ApplicationEvent, Contact, Settings, UserProgress, ApplicationStatus } from "./types";
 import { getNextActions, isStale } from "./utils";
 import { startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
+import { useUser } from "@stackframe/stack";
+import { useEffect, useState, useCallback } from "react";
+import * as serverActions from "./actions";
 
-// Hook to get all applications
+// Hook to get all applications - hybrid: server for auth, local for guest
 export function useApplications() {
-    return useLiveQuery(() =>
+    const user = useUser();
+    const [serverApps, setServerApps] = useState<Application[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    const localApps = useLiveQuery(() =>
         db.applications.orderBy("updatedAt").reverse().toArray()
         , []);
+
+    const refresh = useCallback(() => {
+        setRefreshKey(k => k + 1);
+    }, []);
+
+    useEffect(() => {
+        if (user) {
+            setLoading(true);
+            serverActions.getApplications().then((apps) => {
+                setServerApps(apps);
+                setLoading(false);
+            }).catch(() => setLoading(false));
+        } else {
+            setLoading(false);
+        }
+    }, [user, refreshKey]);
+
+    // Return server data for authenticated users, local for guests
+    if (user) {
+        return { apps: serverApps, loading, refresh };
+    }
+    return { apps: localApps ?? [], loading: false, refresh };
 }
 
 // Hook to get active applications (not archived)
 export function useActiveApplications() {
-    return useLiveQuery(() =>
-        db.applications
-            .filter(app => !app.archived)
-            .toArray()
-        , []);
+    const { apps, loading, refresh } = useApplications();
+    const filtered = apps.filter((app: Application) => !app.archived);
+    return { apps: filtered, loading, refresh };
 }
 
 // Hook to get a single application with related data
-export function useApplication(id: number) {
-    const application = useLiveQuery(() =>
-        db.applications.get(id)
+export function useApplication(id: string | number) {
+    const user = useUser();
+    const [serverData, setServerData] = useState<{
+        application: Application | null | undefined;
+        events: ApplicationEvent[];
+        contacts: Contact[];
+        reminders: any[];
+    } | null>(null);
+
+    useEffect(() => {
+        if (user && typeof id === 'string') {
+            Promise.all([
+                serverActions.getApplication(id),
+                serverActions.getApplicationEvents(id),
+                serverActions.getApplicationContacts(id)
+            ]).then(([app, events, contacts]) => {
+                setServerData({
+                    application: app,
+                    events: events,
+                    contacts: contacts,
+                    reminders: []
+                });
+            });
+        }
+    }, [user, id]);
+
+    const localApp = useLiveQuery(() =>
+        typeof id === 'number' ? db.applications.get(id) : undefined
         , [id]);
 
-    const events = useLiveQuery(() =>
-        db.events.where("applicationId").equals(id).toArray()
+    const localEvents = useLiveQuery(() =>
+        typeof id === 'number' ? db.events.where("applicationId").equals(id).toArray() : []
         , [id]);
 
-    const contacts = useLiveQuery(() =>
-        db.contacts.where("applicationId").equals(id).toArray()
+    const localContacts = useLiveQuery(() =>
+        typeof id === 'number' ? db.contacts.where("applicationId").equals(id).toArray() : []
         , [id]);
 
-    const reminders = useLiveQuery(() =>
-        db.reminders.where("applicationId").equals(id).toArray()
+    const localReminders = useLiveQuery(() =>
+        typeof id === 'number' ? db.reminders.where("applicationId").equals(id).toArray() : []
         , [id]);
 
-    return { application, events, contacts, reminders };
+    if (user && typeof id === 'string') {
+        return serverData ?? {
+            application: undefined,
+            events: [],
+            contacts: [],
+            reminders: []
+        };
+    }
+
+    return {
+        application: localApp,
+        events: localEvents ?? [],
+        contacts: localContacts ?? [],
+        reminders: localReminders ?? []
+    };
 }
 
 // Hook to get applications by status
 export function useApplicationsByStatus(status: ApplicationStatus) {
-    return useLiveQuery(() =>
-        db.applications
-            .where("status")
-            .equals(status)
-            .filter(app => !app.archived)
-            .toArray()
-        , [status]);
+    const { apps, loading, refresh } = useActiveApplications();
+    const filtered = apps.filter((app: Application) => app.status === status);
+    return { apps: filtered, loading, refresh };
 }
 
 // Hook to get settings
 export function useSettings() {
-    return useLiveQuery(() => getSettings(), []);
+    const user = useUser();
+    const [serverSettings, setServerSettings] = useState<Settings | null>(null);
+
+    useEffect(() => {
+        if (user) {
+            serverActions.getUserSettingsFromDB().then(setServerSettings);
+        }
+    }, [user]);
+
+    const localSettings = useLiveQuery(() => getSettings());
+
+    const defaults: Settings = {
+        id: "default",
+        weeklyGoal: 8,
+        dailyGoal: 2,
+        followUpDays: 7,
+        interviewFollowUpDays: 2,
+        ghostedDays: 21,
+        streakGraceDays: 2,
+        darkMode: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+    };
+
+    if (user) {
+        return serverSettings ?? defaults;
+    }
+
+    return localSettings ?? defaults;
 }
 
 // Hook to get user progress
 export function useUserProgress() {
-    return useLiveQuery(() => getUserProgress(), []);
+    const user = useUser();
+    const [serverProgress, setServerProgress] = useState<UserProgress | null>(null);
+
+    useEffect(() => {
+        if (user) {
+            serverActions.getUserProgressFromDB().then(setServerProgress);
+        }
+    }, [user]);
+
+    const localProgress = useLiveQuery(() => getUserProgress(), []);
+
+    const defaults = {
+        xp: 0,
+        level: 1,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastActiveDate: new Date(),
+        streakGraceUsed: false,
+        totalApplications: 0,
+        totalInterviews: 0,
+        totalOffers: 0,
+        totalFollowUps: 0,
+        badges: [],
+        milestones: [],
+        weeklyStats: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+    } as UserProgress;
+
+    if (user) {
+        return serverProgress ?? defaults;
+    }
+
+    return localProgress ?? defaults;
 }
 
 // Hook to get stale applications
 export function useStaleApplications() {
-    const apps = useActiveApplications();
+    const { apps } = useActiveApplications();
     const settings = useSettings();
 
     if (!apps || !settings) return [];
 
-    return apps.filter(app => isStale(app, settings.followUpDays));
+    return apps.filter((app: Application) => isStale(app, settings.followUpDays));
 }
 
 // Hook to get next actions
 export function useNextActions() {
-    const apps = useActiveApplications();
+    const { apps } = useActiveApplications();
     const settings = useSettings();
 
     if (!apps || !settings) return [];
@@ -86,7 +210,7 @@ export function useNextActions() {
 
 // Hook to get weekly stats
 export function useWeeklyStats() {
-    const apps = useApplications();
+    const { apps } = useApplications();
     const settings = useSettings();
 
     if (!apps || !settings) return { applied: 0, goal: 8, percentage: 0 };
@@ -94,7 +218,7 @@ export function useWeeklyStats() {
     const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
     const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
 
-    const thisWeekApps = apps.filter(app => {
+    const thisWeekApps = apps.filter((app: Application) => {
         if (!app.appliedAt) return false;
         const appliedDate = new Date(app.appliedAt);
         return isWithinInterval(appliedDate, { start: weekStart, end: weekEnd });
@@ -109,7 +233,7 @@ export function useWeeklyStats() {
 
 // Hook to get daily stats
 export function useDailyStats() {
-    const apps = useApplications();
+    const { apps } = useApplications();
     const settings = useSettings();
 
     if (!apps || !settings) return { applied: 0, goal: 2, percentage: 0 };
@@ -117,7 +241,7 @@ export function useDailyStats() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const todayApps = apps.filter(app => {
+    const todayApps = apps.filter((app: Application) => {
         if (!app.appliedAt) return false;
         const appliedDate = new Date(app.appliedAt);
         appliedDate.setHours(0, 0, 0, 0);
@@ -131,10 +255,28 @@ export function useDailyStats() {
     return { applied, goal, percentage };
 }
 
-// Actions
+// --- Hybrid Action Functions ---
+// These check if user is authenticated and use server actions if so, otherwise use local Dexie
 
-// Add a new application
-export async function addApplication(data: Omit<Application, "id" | "createdAt" | "updatedAt" | "lastTouchAt">) {
+export async function addApplication(
+    data: Omit<Application, "id" | "createdAt" | "updatedAt" | "lastTouchAt">,
+    isAuthenticated: boolean = false
+) {
+    if (isAuthenticated) {
+        // Use server action for authenticated users
+        try {
+            const result = await serverActions.createApplication({
+                ...data,
+                lastTouchAt: new Date(),
+            });
+            return result.id;
+        } catch (error) {
+            console.error("Failed to save to server:", error);
+            // Fallback to local storage
+        }
+    }
+
+    // Local storage for guests
     const now = new Date();
     const app: Omit<Application, "id"> = {
         ...data,
@@ -143,33 +285,12 @@ export async function addApplication(data: Omit<Application, "id" | "createdAt" 
         lastTouchAt: now,
         appliedAt: data.status !== "saved" ? now : undefined,
     };
-
     const id = await db.applications.add(app) as number;
 
-    // Add XP for applying
     if (data.status !== "saved") {
         await addXP(10);
         await updateStreak();
-
-        // Check for badges
-        const progress = await getUserProgress();
-        if (progress.totalApplications === 0) {
-            await checkAndAwardBadge("first-application" as BadgeType);
-        }
-
-        const totalApps = await db.applications.count();
-        if (totalApps >= 10) await checkAndAwardBadge("ten-apps" as BadgeType);
-        if (totalApps >= 50) await checkAndAwardBadge("fifty-apps" as BadgeType);
-        if (totalApps >= 100) await checkAndAwardBadge("hundred-apps" as BadgeType);
-
-        // Update total applications
-        await db.userProgress.update(progress.id!, {
-            totalApplications: progress.totalApplications + 1,
-            updatedAt: now,
-        });
     }
-
-    // Add initial event
     await db.events.add({
         applicationId: id,
         type: data.status === "saved" ? "note" : "applied",
@@ -178,181 +299,212 @@ export async function addApplication(data: Omit<Application, "id" | "createdAt" 
         createdAt: now,
         completed: true,
     });
-
     return id;
 }
 
-// Update application status
-export async function updateApplicationStatus(id: number, newStatus: ApplicationStatus) {
-    const now = new Date();
-    const app = await db.applications.get(id);
-    if (!app) return;
+export async function updateApplicationStatus(
+    id: string | number,
+    newStatus: ApplicationStatus,
+    isAuthenticated: boolean = false
+) {
+    if (isAuthenticated && typeof id === 'string') {
+        try {
+            await serverActions.updateApplication(id, { status: newStatus });
+            return;
+        } catch (error) {
+            console.error("Failed to update on server:", error);
+        }
+    }
 
-    const oldStatus = app.status;
+    if (typeof id === 'number') {
+        const now = new Date();
+        const app = await db.applications.get(id);
+        if (!app) return;
+        const oldStatus = app.status;
+        await db.applications.update(id, {
+            status: newStatus,
+            updatedAt: now,
+            lastTouchAt: now,
+            appliedAt: oldStatus === "saved" && newStatus !== "saved" ? now : app.appliedAt,
+        });
+        await db.events.add({
+            applicationId: id,
+            type: "status-change",
+            title: `Moved to ${newStatus}`,
+            date: now,
+            createdAt: now,
+            completed: true,
+        });
+        if (oldStatus === "saved" && newStatus !== "saved") {
+            await addXP(10);
+            await updateStreak();
+        }
+    }
+}
 
-    await db.applications.update(id, {
-        status: newStatus,
-        updatedAt: now,
-        lastTouchAt: now,
-        appliedAt: oldStatus === "saved" && newStatus !== "saved" ? now : app.appliedAt,
-    });
+export async function updateApplication(
+    id: string | number,
+    data: Partial<Application>,
+    isAuthenticated: boolean = false
+) {
+    if (isAuthenticated && typeof id === 'string') {
+        try {
+            await serverActions.updateApplication(id, data);
+            return;
+        } catch (error) {
+            console.error("Failed to update on server:", error);
+        }
+    }
 
-    // Add status change event
-    await db.events.add({
-        applicationId: id,
-        type: "status-change",
-        title: `Moved to ${newStatus}`,
-        date: now,
-        createdAt: now,
-        completed: true,
-    });
+    if (typeof id === 'number') {
+        const now = new Date();
+        await db.applications.update(id, {
+            ...data,
+            updatedAt: now,
+            lastTouchAt: now,
+        });
+    }
+}
 
-    // XP and badge logic
-    if (oldStatus === "saved" && newStatus !== "saved") {
-        await addXP(10);
+export async function deleteApplication(id: string | number, isAuthenticated: boolean = false) {
+    if (isAuthenticated && typeof id === 'string') {
+        try {
+            await serverActions.deleteApplication(id);
+            return;
+        } catch (error) {
+            console.error("Failed to delete on server:", error);
+        }
+    }
+
+    if (typeof id === 'number') {
+        await db.applications.delete(id);
+        await db.events.where("applicationId").equals(id).delete();
+        await db.contacts.where("applicationId").equals(id).delete();
+        await db.reminders.where("applicationId").equals(id).delete();
+    }
+}
+
+export async function addEvent(
+    data: Omit<ApplicationEvent, "id" | "createdAt"> & { applicationId: string | number },
+    isAuthenticated: boolean = false
+) {
+    if (isAuthenticated && typeof data.applicationId === 'string') {
+        const { applicationId, ...eventData } = data;
+        try {
+            await serverActions.createApplicationEvent(applicationId, eventData);
+            return;
+        } catch (error) {
+            console.error("Failed to add event on server:", error);
+        }
+    }
+
+    if (typeof data.applicationId === 'number') {
+        const now = new Date();
+        await db.events.add({ ...data, createdAt: now });
+        await db.applications.update(data.applicationId, { lastTouchAt: now, updatedAt: now });
+        if (data.type === "follow-up") await addXP(15);
+    }
+}
+
+export async function addContact(
+    data: Omit<Contact, "id" | "createdAt"> & { applicationId: string | number },
+    isAuthenticated: boolean = false
+) {
+    if (isAuthenticated && typeof data.applicationId === 'string') {
+        const { applicationId, ...contactData } = data;
+        try {
+            await serverActions.createContact(applicationId, contactData);
+            return;
+        } catch (error) {
+            console.error("Failed to add contact on server:", error);
+        }
+    }
+
+    if (typeof data.applicationId === 'number') {
+        const now = new Date();
+        await db.contacts.add({ ...data, createdAt: now });
+    }
+}
+
+export async function updateSettings(data: Partial<Settings>, isAuthenticated: boolean = false) {
+    if (isAuthenticated) {
+        try {
+            await serverActions.updateUserSettings(data);
+            return;
+        } catch (error) {
+            console.error("Failed to update settings on server:", error);
+        }
+    }
+
+    const settings = await getSettings();
+    if (settings && settings.id) {
+        await db.settings.update(settings.id, {
+            ...data,
+            updatedAt: new Date(),
+        });
+    }
+}
+
+export async function markFollowUpSent(applicationId: string | number, isAuthenticated: boolean = false) {
+    if (isAuthenticated && typeof applicationId === 'string') {
+        try {
+            await serverActions.createApplicationEvent(applicationId, {
+                type: "follow-up",
+                title: "Follow-up sent",
+                date: new Date(),
+                completed: true
+            });
+            return;
+        } catch (error) {
+            console.error("Failed to mark follow-up on server:", error);
+        }
+    }
+
+    if (typeof applicationId === 'number') {
+        const now = new Date();
+        await db.events.add({
+            applicationId,
+            type: "follow-up",
+            title: "Follow-up sent",
+            date: now,
+            createdAt: now,
+            completed: true,
+        });
+        await db.applications.update(applicationId, { lastTouchAt: now, updatedAt: now });
+        await addXP(15);
         await updateStreak();
     }
+}
 
-    if (["screen", "interview1", "interview2", "final"].includes(newStatus)) {
-        await addXP(25);
-
-        const progress = await getUserProgress();
-        if (progress.totalInterviews === 0) {
-            await checkAndAwardBadge("first-interview" as BadgeType);
+export async function markPrepDone(applicationId: string | number, isAuthenticated: boolean = false) {
+    if (isAuthenticated && typeof applicationId === 'string') {
+        try {
+            await serverActions.createApplicationEvent(applicationId, {
+                type: "note",
+                title: "Prepared for interview",
+                date: new Date(),
+                completed: true
+            });
+            // Prepare doesn't have a specific event type in DB, 'note' is used locally.
+            // Server might need logic for XP if desired.
+            return;
+        } catch (error) {
+            console.error("Failed to mark prep done on server:", error);
         }
+    }
 
-        await db.userProgress.update(progress.id!, {
-            totalInterviews: progress.totalInterviews + 1,
-            updatedAt: now,
+    if (typeof applicationId === 'number') {
+        const now = new Date();
+        await db.events.add({
+            applicationId,
+            type: "note",
+            title: "Prepared for interview",
+            date: now,
+            createdAt: now,
+            completed: true,
         });
-    }
-
-    if (newStatus === "offer") {
-        await addXP(100);
-
-        const progress = await getUserProgress();
-        await checkAndAwardBadge("first-offer" as BadgeType);
-
-        await db.userProgress.update(progress.id!, {
-            totalOffers: progress.totalOffers + 1,
-            updatedAt: now,
-        });
+        await db.applications.update(applicationId, { lastTouchAt: now, updatedAt: now });
+        await addXP(5);
+        await updateStreak();
     }
 }
-
-// Update application
-export async function updateApplication(id: number, data: Partial<Application>) {
-    const now = new Date();
-    await db.applications.update(id, {
-        ...data,
-        updatedAt: now,
-        lastTouchAt: now,
-    });
-}
-
-// Delete application
-export async function deleteApplication(id: number) {
-    await db.applications.delete(id);
-    await db.events.where("applicationId").equals(id).delete();
-    await db.contacts.where("applicationId").equals(id).delete();
-    await db.reminders.where("applicationId").equals(id).delete();
-}
-
-// Add event
-export async function addEvent(data: Omit<ApplicationEvent, "id" | "createdAt">) {
-    const now = new Date();
-    await db.events.add({
-        ...data,
-        createdAt: now,
-    });
-
-    // Update application last touch
-    await db.applications.update(data.applicationId, {
-        lastTouchAt: now,
-        updatedAt: now,
-    });
-
-    // Add XP for follow-ups
-    if (data.type === "follow-up") {
-        await addXP(15);
-
-        const progress = await getUserProgress();
-        if (progress.totalFollowUps >= 9) {
-            await checkAndAwardBadge("follow-up-pro" as BadgeType);
-        }
-
-        await db.userProgress.update(progress.id!, {
-            totalFollowUps: progress.totalFollowUps + 1,
-            updatedAt: now,
-        });
-    }
-}
-
-// Add contact
-export async function addContact(data: Omit<Contact, "id" | "createdAt">) {
-    const now = new Date();
-    await db.contacts.add({
-        ...data,
-        createdAt: now,
-    });
-
-    // Check for networker badge
-    const totalContacts = await db.contacts.count();
-    if (totalContacts >= 10) {
-        await checkAndAwardBadge("networker" as BadgeType);
-    }
-}
-
-// Update settings
-export async function updateSettings(data: Partial<Settings>) {
-    const settings = await getSettings();
-    await db.settings.update(settings.id!, {
-        ...data,
-        updatedAt: new Date(),
-    });
-}
-
-// Mark follow-up as sent
-export async function markFollowUpSent(applicationId: number) {
-    const now = new Date();
-
-    await db.events.add({
-        applicationId,
-        type: "follow-up",
-        title: "Follow-up sent",
-        date: now,
-        createdAt: now,
-        completed: true,
-    });
-
-    await db.applications.update(applicationId, {
-        lastTouchAt: now,
-        updatedAt: now,
-    });
-
-    await addXP(15);
-    await updateStreak();
-}
-
-// Mark interview prep as done (adds a note event and XP)
-export async function markPrepDone(applicationId: number) {
-    const now = new Date();
-
-    await db.events.add({
-        applicationId,
-        type: "note",
-        title: "Prepared for interview",
-        date: now,
-        createdAt: now,
-        completed: true,
-    });
-
-    await db.applications.update(applicationId, {
-        lastTouchAt: now,
-        updatedAt: now,
-    });
-
-    await addXP(5);
-    await updateStreak();
-}
-

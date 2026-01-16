@@ -18,6 +18,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn, getDaysInStage, getCompanyLogo, getStatusColorClass, formatRelativeDate } from "@/lib/utils";
 import { updateApplicationStatus, deleteApplication } from "@/lib/hooks";
+import { useUser } from "@stackframe/stack";
 import type { Application, ApplicationStatus } from "@/lib/types";
 import { PLATFORM_CONFIG, STATUS_CONFIG } from "@/lib/types";
 
@@ -27,6 +28,7 @@ interface ApplicationCardProps {
 }
 
 export function ApplicationCard({ application, isDraggable = true }: ApplicationCardProps) {
+    const user = useUser();
     const [showMenu, setShowMenu] = useState(false);
     const [imageError, setImageError] = useState(false);
 
@@ -51,13 +53,13 @@ export function ApplicationCard({ application, isDraggable = true }: Application
     const platformConfig = PLATFORM_CONFIG[application.platform];
 
     const handleQuickAction = async (action: "rejected" | "ghosted" | "offer") => {
-        await updateApplicationStatus(application.id!, action);
+        await updateApplicationStatus(application.id!, action, !!user);
         setShowMenu(false);
     };
 
     const handleDelete = async () => {
         if (confirm(`Delete application for ${application.company}?`)) {
-            await deleteApplication(application.id!);
+            await deleteApplication(application.id!, !!user);
         }
         setShowMenu(false);
     };

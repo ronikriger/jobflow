@@ -73,10 +73,11 @@ function DraggableCard({ application }: { application: Application }) {
             {...listeners}
         >
             <div
-                className="rounded-xl p-4 transition-all hover:shadow-lg"
+                className="rounded-xl p-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
                 style={{
-                    backgroundColor: '#1f1f23',
-                    border: '1px solid #27272a',
+                    backgroundColor: 'rgba(31, 31, 35, 0.9)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    backdropFilter: 'blur(8px)',
                 }}
             >
                 {/* Header */}
@@ -224,7 +225,7 @@ function KanbanColumn({
 
 export default function BoardPage() {
     const [isClient, setIsClient] = useState(false);
-    const applications = useActiveApplications();
+    const { apps: applications, loading, refresh } = useActiveApplications();
     const [showAddModal, setShowAddModal] = useState(false);
     const [activeId, setActiveId] = useState<number | null>(null);
     const [overId, setOverId] = useState<ApplicationStatus | null>(null);
@@ -312,14 +313,15 @@ export default function BoardPage() {
         }
 
         if (newStatus && newStatus !== activeApp.status) {
-            await updateApplicationStatus(activeApp.id!, newStatus);
+            await updateApplicationStatus(activeApp.id!, newStatus, true); // Assume auth for now, or get explicit state
+            refresh(); // Refresh after update
         }
     };
 
     const totalActive = applications?.filter((a) => !["rejected", "ghosted"].includes(a.status)).length ?? 0;
     const hasApplications = applications && applications.length > 0;
 
-    if (!isClient) {
+    if (!isClient || loading) {
         return (
             <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#09090b' }}>
                 <div className="flex flex-col items-center gap-4">
@@ -353,7 +355,7 @@ export default function BoardPage() {
                         <Plus className="w-5 h-5" />
                         Add First Application
                     </button>
-                    <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} />
+                    <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} />
                 </div>
             </div>
         );
@@ -458,7 +460,7 @@ export default function BoardPage() {
                     {activeApplication && <StaticCard application={activeApplication} />}
                 </DragOverlay>
 
-                <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} />
+                <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} />
             </div>
         </DndContext>
     );

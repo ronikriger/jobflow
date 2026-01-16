@@ -62,7 +62,7 @@ export type MilestoneType =
 
 // Core application model
 export interface Application {
-    id?: number;
+    id?: string | number;
     company: string;
     role: string;
     location?: string;
@@ -82,8 +82,8 @@ export interface Application {
 
 // Event/Activity model for timeline
 export interface ApplicationEvent {
-    id?: number;
-    applicationId: number;
+    id?: string | number;
+    applicationId: string | number;
     type: EventType;
     title: string;
     description?: string;
@@ -95,8 +95,8 @@ export interface ApplicationEvent {
 
 // Contact model for networking
 export interface Contact {
-    id?: number;
-    applicationId: number;
+    id?: string | number;
+    applicationId: string | number;
     name: string;
     role?: string;
     email?: string;
@@ -108,8 +108,8 @@ export interface Contact {
 
 // Reminder model
 export interface Reminder {
-    id?: number;
-    applicationId: number;
+    id?: string | number;
+    applicationId: string | number;
     title: string;
     description?: string;
     dueAt: Date;
@@ -119,7 +119,7 @@ export interface Reminder {
 
 // User settings
 export interface Settings {
-    id?: number;
+    id?: string | number;
     weeklyGoal: number;
     dailyGoal: number;
     followUpDays: number; // Days after application to suggest follow-up
@@ -133,7 +133,7 @@ export interface Settings {
 
 // User progress/gamification
 export interface UserProgress {
-    id?: number;
+    id?: string | number;
     xp: number;
     level: number;
     currentStreak: number;

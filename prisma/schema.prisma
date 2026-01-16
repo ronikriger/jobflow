@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Application tracking models
+model Application {
+  id          String   @id @default(cuid())
+  userId      String   // Stack Auth user ID
+  company     String
+  role        String
+  location    String?
+  salary      String?
+  url         String?
+  platform    String   @default("other")
+  status      String   @default("saved")
+  priority    String   @default("medium")
+  notes       String?  @db.Text
+  appliedAt   DateTime?
+  lastTouchAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  events   ApplicationEvent[]
+  contacts Contact[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model ApplicationEvent {
+  id            String   @id @default(cuid())
+  applicationId String
+  type          String
+  title         String
+  description   String?  @db.Text
+  date          DateTime @default(now())
+  completed     Boolean  @default(false)
+  scheduledAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+}
+
+model Contact {
+  id            String   @id @default(cuid())
+  applicationId String
+  name          String
+  role          String?
+  email         String?
+  phone         String?
+  linkedin      String?
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+}
+
+model UserProgress {
+  id              String   @id @default(cuid())
+  userId          String   @unique // Stack Auth user ID
+  xp              Int      @default(0)
+  level           Int      @default(1)
+  currentStreak   Int      @default(0)
+  longestStreak   Int      @default(0)
+  lastActiveAt    DateTime @default(now())
+  totalApplied    Int      @default(0)
+  totalOffers     Int      @default(0)
+  totalInterviews Int      @default(0)
+  totalFollowUps  Int      @default(0)
+  badges          String[] @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model UserSettings {
+  id                    String   @id @default(cuid())
+  userId                String   @unique // Stack Auth user ID
+  weeklyGoal            Int      @default(8)
+  dailyGoal             Int      @default(2)
+  followUpDays          Int      @default(7)
+  interviewFollowUpDays Int      @default(2)
+  ghostedDays           Int      @default(21)
+  streakGraceDays       Int      @default(2)
+  darkMode              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}

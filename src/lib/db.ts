@@ -461,6 +461,87 @@ export async function exportToCSV(): Promise<string> {
         ),
     ].join("\n");
 
+
     return csvContent;
+}
+
+// Import data from CSV
+export async function importFromCSV(file: File): Promise<{ success: boolean; count: number; error?: string }> {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+
+        reader.onload = async (e) => {
+            try {
+                const text = e.target?.result as string;
+                if (!text) throw new Error("Empty file");
+
+                const lines = text.split("\n");
+                if (lines.length < 2) throw new Error("Invalid CSV format");
+
+                // Parse headers
+                const headers = lines[0].split(",");
+
+                let count = 0;
+                const now = new Date();
+
+                // Process rows
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (!line || line.trim() === "") continue;
+
+                    // Simple CSV parser (handles quoted values)
+                    const values: string[] = [];
+                    let currentValue = "";
+                    let inQuotes = false;
+
+                    for (let j = 0; j < line.length; j++) {
+                        const char = line[j];
+                        if (char === '"') {
+                            if (j + 1 < line.length && line[j + 1] === '"') {
+                                currentValue += '"';
+                                j++; // Skip escaped quote
+                            } else {
+                                inQuotes = !inQuotes;
+                            }
+                        } else if (char === ',' && !inQuotes) {
+                            values.push(currentValue);
+                            currentValue = "";
+                        } else {
+                            currentValue += char;
+                        }
+                    }
+                    values.push(currentValue);
+
+                    // Map values to Application object
+                    // Headers: Company,Role,Location,Salary,URL,Platform,Status,Applied Date,Last Touch,Priority,Notes
+                    const app: Omit<Application, "id"> = {
+                        company: values[0] || "Unknown",
+                        role: values[1] || "Unknown Role",
+                        location: values[2],
+                        salary: values[3],
+                        url: values[4],
+                        platform: (values[5] as Platform) || "other",
+                        status: (values[6] as ApplicationStatus) || "saved",
+                        appliedAt: values[7] ? new Date(values[7]) : undefined,
+                        lastTouchAt: values[8] ? new Date(values[8]) : now,
+                        priority: (values[9] as "high" | "medium" | "low") || "medium",
+                        notes: values[10],
+                        createdAt: now,
+                        updatedAt: now,
+                    };
+
+                    await db.applications.add(app);
+                    count++;
+                }
+
+                resolve({ success: true, count });
+            } catch (error) {
+                console.error("Import error:", error);
+                resolve({ success: false, count: 0, error: "Failed to parse CSV" });
+            }
+        };
+
+        reader.readAsText(file);
+    });
 }
 

@@ -1,0 +1,16 @@
+{
+    "name": "JobFlow",
+    "short_name": "JobFlow",
+    "description": "Premium job application tracker with gamification",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#09090b",
+    "theme_color": "#09090b",
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}

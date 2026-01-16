@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useUser } from "@stackframe/stack";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -62,9 +63,11 @@ const itemVariants = {
 };
 
 export default function ApplicationDetailPage() {
+    const user = useUser();
     const params = useParams();
     const router = useRouter();
-    const id = parseInt(params.id as string);
+    const paramId = params.id as string;
+    const id = /^\d+$/.test(paramId) ? parseInt(paramId) : paramId;
 
     const { application, events, contacts } = useApplication(id);
     const [imageError, setImageError] = useState(false);
@@ -87,19 +90,19 @@ export default function ApplicationDetailPage() {
     const platformConfig = PLATFORM_CONFIG[application.platform];
 
     const handleStatusChange = async (newStatus: ApplicationStatus) => {
-        await updateApplicationStatus(id, newStatus);
+        await updateApplicationStatus(id, newStatus, !!user);
         setShowStatusMenu(false);
     };
 
     const handleDelete = async () => {
         if (confirm(`Delete application for ${application.company}?`)) {
-            await deleteApplication(id);
+            await deleteApplication(id, !!user);
             router.push("/board");
         }
     };
 
     const handleSaveNotes = async () => {
-        await updateApplication(id, { notes });
+        await updateApplication(id, { notes }, !!user);
         setEditingNotes(false);
     };
 
@@ -269,7 +272,7 @@ export default function ApplicationDetailPage() {
 
                                 <div className="ml-auto flex items-center gap-2">
                                     <button
-                                        onClick={() => markFollowUpSent(id)}
+                                        onClick={() => markFollowUpSent(id, !!user)}
                                         className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-sm font-medium transition-colors"
                                     >
                                         Log Follow-up
@@ -529,8 +532,9 @@ function AddEventModal({
 }: {
     open: boolean;
     onClose: () => void;
-    applicationId: number;
+    applicationId: string | number;
 }) {
+    const user = useUser();
     const [type, setType] = useState<EventType>("note");
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -546,7 +550,7 @@ function AddEventModal({
             description: description || undefined,
             date: new Date(),
             completed: true,
-        });
+        }, !!user);
 
         setType("note");
         setTitle("");
@@ -635,8 +639,9 @@ function AddContactModal({
 }: {
     open: boolean;
     onClose: () => void;
-    applicationId: number;
+    applicationId: string | number;
 }) {
+    const user = useUser();
     const [name, setName] = useState("");
     const [role, setRole] = useState("");
     const [email, setEmail] = useState("");
@@ -652,7 +657,7 @@ function AddContactModal({
             role: role || undefined,
             email: email || undefined,
             linkedin: linkedin || undefined,
-        });
+        }, !!user);
 
         setName("");
         setRole("");
