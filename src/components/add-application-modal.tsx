@@ -87,15 +87,18 @@ export function AddApplicationModal({ open, onClose, onSuccess }: AddApplication
                         onClick={onClose}
                     />
 
-                    {/* Modal */}
+                    {/* Modal Container - Centered with Flexbox */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg z-50 px-4"
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4"
                     >
-                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                        <div
+                            className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden w-full max-w-lg max-h-[85vh] flex flex-col"
+                            onClick={(e) => e.stopPropagation()}
+                        >
                             {/* Header */}
                             <div className="flex items-center justify-between p-6 border-b border-zinc-800 flex-shrink-0">
                                 <div>
