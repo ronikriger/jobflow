@@ -28,14 +28,14 @@ export const metadata: Metadata = {
     authors: [{ name: "JobFlow" }],
     creator: "JobFlow",
     publisher: "JobFlow",
-    metadataBase: new URL("https://jobflow-app-nu.vercel.app"),
+    metadataBase: new URL("https://trackjobapplications.vercel.app"),
     alternates: {
         canonical: "/",
     },
     openGraph: {
         title: "JobFlow | Free Job Application Tracker",
         description: "Track your job applications, manage your pipeline, and land your dream job faster. Free with Kanban board & analytics.",
-        url: "https://jobflow-app-nu.vercel.app",
+        url: "https://trackjobapplications.vercel.app",
         siteName: "JobFlow",
         locale: "en_US",
         type: "website",

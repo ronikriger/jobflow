@@ -5,7 +5,7 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://jobflow-app-nu.vercel.app/sitemap.xml
+Sitemap: https://trackjobapplications.vercel.app/sitemap.xml
 
 # Disallow private/auth routes
 Disallow: /handler/

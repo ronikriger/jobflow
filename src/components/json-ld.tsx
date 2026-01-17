@@ -4,7 +4,7 @@ export default function JsonLd() {
         "@type": "WebApplication",
         "name": "JobFlow",
         "description": "Track your job applications, manage your pipeline, and land your dream job faster. Free job search tracker with Kanban board, analytics, and gamification.",
-        "url": "https://jobflow-app-nu.vercel.app",
+        "url": "https://trackjobapplications.vercel.app",
         "applicationCategory": "ProductivityApplication",
         "operatingSystem": "Web",
         "offers": {
