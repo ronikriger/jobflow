@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import { useUserProgress, useWeeklyStats } from "@/lib/hooks";
 import { AuthButton } from "./auth-button";
+import { ProBadge } from "./pro-badge";
+import { getSubscriptionStatus } from "@/lib/actions";
+import { useEffect, useState } from "react";
 
 const navItems = [
     { href: "/home", label: "Dashboard", icon: LayoutDashboard },
@@ -26,6 +29,11 @@ export function Sidebar() {
     const pathname = usePathname();
     const progress = useUserProgress();
     const weeklyStats = useWeeklyStats();
+    const [isPro, setIsPro] = useState(false);
+
+    useEffect(() => {
+        getSubscriptionStatus().then(status => setIsPro(status?.tier === "pro"));
+    }, []);
 
     return (
         <aside
@@ -42,7 +50,10 @@ export function Sidebar() {
                         <Zap className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h1 className="font-bold text-lg tracking-tight" style={{ color: 'white' }}>JobFlow</h1>
+                        <div className="flex items-center gap-2">
+                            <h1 className="font-bold text-lg tracking-tight" style={{ color: 'white' }}>JobFlow</h1>
+                            {isPro && <ProBadge size="sm" showText={true} />}
+                        </div>
                         <p className="text-xs" style={{ color: '#71717a' }}>Job Search Tracker</p>
                     </div>
                 </Link>

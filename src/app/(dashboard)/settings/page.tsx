@@ -10,11 +10,19 @@ import {
     RefreshCw,
     AlertTriangle,
     Upload,
+    Crown,
+    FileSpreadsheet,
+    FileText,
+    Lock,
 } from "lucide-react";
-import { useSettings, updateSettings } from "@/lib/hooks";
+import { useSettings, updateSettings, useActiveApplications } from "@/lib/hooks";
 import { useUser } from "@stackframe/stack";
-import { exportToCSV, db, initializeDefaults } from "@/lib/db";
+import { exportToCSV as dbExportToCSV, db, initializeDefaults } from "@/lib/db";
+import { exportToCSV, exportToPDF } from "@/lib/export";
 import { cn } from "@/lib/utils";
+import { ProBadge, UpgradeToPro } from "@/components/pro-badge";
+import { UpgradeModal } from "@/components/upgrade-modal";
+import { getSubscriptionStatus } from "@/lib/actions";
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -43,6 +51,11 @@ export default function SettingsPage() {
     });
     const [saving, setSaving] = useState(false);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [subscriptionStatus, setSubscriptionStatus] = useState<{
+        tier: "free" | "pro"; appCount: number; limit: number; canAddMore: boolean;
+    } | null>(null);
+    const { apps: applications } = useActiveApplications();
 
     useEffect(() => {
         if (settings) {
@@ -58,6 +71,10 @@ export default function SettingsPage() {
         }
     }, [settings]);
 
+    useEffect(() => {
+        getSubscriptionStatus().then(setSubscriptionStatus);
+    }, []);
+
     const handleSave = async () => {
         setSaving(true);
         await updateSettings(localSettings, !!user);
@@ -65,7 +82,7 @@ export default function SettingsPage() {
     };
 
     const handleExport = async () => {
-        const csv = await exportToCSV();
+        const csv = await dbExportToCSV();
         const blob = new Blob([csv], { type: "text/csv" });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -73,6 +90,22 @@ export default function SettingsPage() {
         a.download = `job-applications-${new Date().toISOString().split("T")[0]}.csv`;
         a.click();
         window.URL.revokeObjectURL(url);
+    };
+
+    const handleProExportCSV = () => {
+        if (subscriptionStatus?.tier !== "pro") {
+            setShowUpgradeModal(true);
+            return;
+        }
+        exportToCSV(applications);
+    };
+
+    const handleProExportPDF = () => {
+        if (subscriptionStatus?.tier !== "pro") {
+            setShowUpgradeModal(true);
+            return;
+        }
+        exportToPDF(applications);
     };
 
     const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,6 +153,49 @@ export default function SettingsPage() {
                         Customize your job tracking experience
                     </p>
                 </motion.div>
+
+                {/* Subscription Section */}
+                <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6 space-y-6 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Crown className="w-24 h-24 rotate-12" />
+                    </div>
+
+                    <div className="flex items-center gap-3 relative z-10">
+                        <div className="p-2 rounded-lg bg-indigo-500/10">
+                            <Crown className="w-5 h-5 text-indigo-400" />
+                        </div>
+                        <div>
+                            <h2 className="font-semibold">Subscription</h2>
+                            <p className="text-sm text-muted-foreground">
+                                Manage your plan and billing
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border relative z-10">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                                <span className="font-medium">Current Plan</span>
+                                {subscriptionStatus?.tier === "pro" ? (
+                                    <ProBadge />
+                                ) : (
+                                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-700 text-zinc-300">Free</span>
+                                )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                {subscriptionStatus?.tier === "pro"
+                                    ? "You have access to all premium features"
+                                    : `${subscriptionStatus?.appCount || 0} / ${subscriptionStatus?.limit || 15} applications used`}
+                            </p>
+                        </div>
+
+                        {subscriptionStatus?.tier !== "pro" && (
+                            <UpgradeToPro onClick={() => setShowUpgradeModal(true)} />
+                        )}
+                    </div>
+                </motion.div>
+
+                {/* Goals Section */}
 
                 {/* Goals Section */}
                 <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6 space-y-6">
@@ -300,24 +376,50 @@ export default function SettingsPage() {
                 <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6 space-y-4">
                     <h2 className="font-semibold">Data Management</h2>
 
-                    <div className="flex gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <button
-                            onClick={handleExport}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors font-medium text-sm"
+                            onClick={handleProExportCSV}
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary hover:bg-secondary/80 transition-all group border border-transparent hover:border-emerald-500/20"
                         >
-                            <Download className="w-4 h-4" />
-                            Export to CSV
+                            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:scale-110 transition-transform">
+                                <FileSpreadsheet className="w-4 h-4" />
+                            </div>
+                            <div className="text-left flex-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-medium text-sm">Export to CSV</span>
+                                    {subscriptionStatus?.tier !== "pro" && <Lock className="w-3 h-3 text-amber-500" />}
+                                </div>
+                                <p className="text-xs text-muted-foreground">Spreadsheet format</p>
+                            </div>
                         </button>
 
-                        <div className="relative">
+                        <button
+                            onClick={handleProExportPDF}
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary hover:bg-secondary/80 transition-all group border border-transparent hover:border-red-500/20"
+                        >
+                            <div className="p-2 rounded-lg bg-red-500/10 text-red-500 group-hover:scale-110 transition-transform">
+                                <FileText className="w-4 h-4" />
+                            </div>
+                            <div className="text-left flex-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-medium text-sm">Export to PDF</span>
+                                    {subscriptionStatus?.tier !== "pro" && <Lock className="w-3 h-3 text-amber-500" />}
+                                </div>
+                                <p className="text-xs text-muted-foreground">Formatted report</p>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                        <div className="relative flex-1">
                             <input
                                 type="file"
                                 accept=".csv"
                                 onChange={handleImport}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                             />
                             <button
-                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors font-medium text-sm"
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors font-medium text-sm"
                             >
                                 <Upload className="w-4 h-4" />
                                 Import CSV
@@ -326,7 +428,7 @@ export default function SettingsPage() {
 
                         <button
                             onClick={() => setShowResetConfirm(true)}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors font-medium text-sm"
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors font-medium text-sm"
                         >
                             <Trash2 className="w-4 h-4" />
                             Reset All Data
@@ -399,6 +501,13 @@ export default function SettingsPage() {
                     </motion.div>
                 </>
             )}
+            {/* Upgrade Modal */}
+            <UpgradeModal
+                open={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                currentApps={subscriptionStatus?.appCount ?? 0}
+                maxApps={15}
+            />
         </div>
     );
 }

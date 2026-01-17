@@ -25,6 +25,8 @@
         "dexie": "^4.0.8",
         "dexie-react-hooks": "^1.1.7",
         "framer-motion": "^11.0.0",
+        "jspdf": "^4.0.0",
+        "jspdf-autotable": "^5.0.7",
         "lucide-react": "^0.400.0",
         "nanoid": "^3.3.11",
         "next": "14.2.18",

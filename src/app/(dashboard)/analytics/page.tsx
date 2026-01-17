@@ -30,6 +30,9 @@ import { calculateAnalytics } from "@/lib/utils";
 import { STATUS_CONFIG, PLATFORM_CONFIG } from "@/lib/types";
 import type { ApplicationStatus } from "@/lib/types";
 import { format, subWeeks, startOfWeek, isWithinInterval, endOfWeek } from "date-fns";
+import { getSubscriptionStatus } from "@/lib/actions";
+import { UpgradeModal } from "@/components/upgrade-modal";
+import { Lock, Crown } from "lucide-react";
 
 const FUNNEL_COLORS: Record<ApplicationStatus, string> = {
     saved: "#6366f1",
@@ -47,10 +50,20 @@ export default function AnalyticsPage() {
     const [isClient, setIsClient] = useState(false);
     const { apps: applications, loading } = useApplications();
     const progress = useUserProgress();
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [subscriptionStatus, setSubscriptionStatus] = useState<{
+        tier: "free" | "pro";
+        appCount: number;
+        limit: number;
+        canAddMore: boolean;
+    } | null>(null);
 
     useEffect(() => {
         setIsClient(true);
+        getSubscriptionStatus().then(setSubscriptionStatus);
     }, []);
+
+    const isPro = subscriptionStatus?.tier === "pro";
 
     const analytics = useMemo(() => {
         if (!applications || applications.length === 0) return null;
@@ -176,27 +189,33 @@ export default function AnalyticsPage() {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <MetricCard
                         title="Response Rate"
-                        value={`${analytics?.responseRate || 0}%`}
+                        value={isPro ? `${analytics?.responseRate || 0}%` : "---"}
                         subtitle={`${analytics?.applied || 0} applications sent`}
                         icon={<MessageSquare className="w-5 h-5" />}
                         trend={(analytics?.responseRate || 0) > 20 ? "up" : "neutral"}
                         color="blue"
+                        isPro={isPro}
+                        onUpgrade={() => setShowUpgradeModal(true)}
                     />
                     <MetricCard
                         title="Interview Rate"
-                        value={`${analytics?.interviewRate || 0}%`}
+                        value={isPro ? `${analytics?.interviewRate || 0}%` : "---"}
                         subtitle={`${progress?.totalInterviews ?? 0} total interviews`}
                         icon={<Briefcase className="w-5 h-5" />}
                         trend={(analytics?.interviewRate || 0) > 10 ? "up" : "neutral"}
                         color="violet"
+                        isPro={isPro}
+                        onUpgrade={() => setShowUpgradeModal(true)}
                     />
                     <MetricCard
                         title="Avg. Response Time"
-                        value={`${analytics?.avgTimeToResponse || 0} days`}
+                        value={isPro ? `${analytics?.avgTimeToResponse || 0} days` : "---"}
                         subtitle="Time to first response"
                         icon={<Clock className="w-5 h-5" />}
                         trend={(analytics?.avgTimeToResponse || 0) < 7 ? "up" : "down"}
                         color="amber"
+                        isPro={isPro}
+                        onUpgrade={() => setShowUpgradeModal(true)}
                     />
                     <MetricCard
                         title="Offers Received"
@@ -205,6 +224,7 @@ export default function AnalyticsPage() {
                         icon={<CheckCircle2 className="w-5 h-5" />}
                         trend="neutral"
                         color="emerald"
+                        isPro={true} // Always visible
                     />
                 </div>
 
@@ -282,9 +302,35 @@ export default function AnalyticsPage() {
                     </div>
                 </div>
 
-                {/* Funnel Chart */}
-                <div className="rounded-2xl p-6" style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}>
-                    <h3 className="text-lg font-semibold mb-6" style={{ color: 'white' }}>Application Funnel</h3>
+                {/* Funnel Chart - Pro Only */}
+                <div className="rounded-2xl p-6 relative overflow-hidden" style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}>
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-semibold" style={{ color: 'white' }}>Application Funnel</h3>
+                        {!isPro && <Lock className="w-5 h-5 text-amber-500" />}
+                    </div>
+
+                    {!isPro && (
+                        <div className="absolute inset-0 z-10 backdrop-blur-sm bg-black/50 flex flex-col items-center justify-center text-center p-6">
+                            <div className="p-3 rounded-full bg-amber-500/10 mb-4">
+                                <Crown className="w-8 h-8 text-amber-500" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-2">Pro Analytics</h3>
+                            <p className="text-zinc-400 mb-6 max-w-sm">
+                                Upgrade to visualize your conversion rates at each stage of the hiring pipeline.
+                            </p>
+                            <button
+                                onClick={() => setShowUpgradeModal(true)}
+                                className="px-6 py-2.5 rounded-xl font-semibold text-white transition-all hover:scale-105"
+                                style={{
+                                    background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                                    boxShadow: "0 4px 12px rgba(245, 158, 11, 0.3)"
+                                }}
+                            >
+                                Unlock Pro Features
+                            </button>
+                        </div>
+                    )}
+
                     {funnelData.length > 0 && funnelData.some(d => d.value > 0) ? (
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={funnelData} layout="vertical">
@@ -309,9 +355,35 @@ export default function AnalyticsPage() {
                     )}
                 </div>
 
-                {/* Platform Performance */}
-                <div className="rounded-2xl p-6" style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}>
-                    <h3 className="text-lg font-semibold mb-6" style={{ color: 'white' }}>Platform Performance</h3>
+                {/* Platform Performance - Pro Only */}
+                <div className="rounded-2xl p-6 relative overflow-hidden" style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}>
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-semibold" style={{ color: 'white' }}>Platform Performance</h3>
+                        {!isPro && <Lock className="w-5 h-5 text-amber-500" />}
+                    </div>
+
+                    {!isPro && (
+                        <div className="absolute inset-0 z-10 backdrop-blur-sm bg-black/50 flex flex-col items-center justify-center text-center p-6">
+                            <div className="p-3 rounded-full bg-amber-500/10 mb-4">
+                                <Crown className="w-8 h-8 text-amber-500" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-2">Track Your Sources</h3>
+                            <p className="text-zinc-400 mb-6 max-w-sm">
+                                See which job boards and platforms are generating the most interviews.
+                            </p>
+                            <button
+                                onClick={() => setShowUpgradeModal(true)}
+                                className="px-6 py-2.5 rounded-xl font-semibold text-white transition-all hover:scale-105"
+                                style={{
+                                    background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                                    boxShadow: "0 4px 12px rgba(245, 158, 11, 0.3)"
+                                }}
+                            >
+                                Unlock Pro Features
+                            </button>
+                        </div>
+                    )}
+
                     {platformData.length === 0 ? (
                         <p className="text-center py-8" style={{ color: '#71717a' }}>Not enough data yet</p>
                     ) : (
@@ -343,6 +415,13 @@ export default function AnalyticsPage() {
                         </div>
                     )}
                 </div>
+
+                <UpgradeModal
+                    open={showUpgradeModal}
+                    onClose={() => setShowUpgradeModal(false)}
+                    currentApps={subscriptionStatus?.appCount ?? 0}
+                    maxApps={15}
+                />
             </div>
         </div>
     );
@@ -355,9 +434,11 @@ interface MetricCardProps {
     icon: React.ReactNode;
     trend: "up" | "down" | "neutral";
     color: "blue" | "violet" | "amber" | "emerald";
+    isPro?: boolean;
+    onUpgrade?: () => void;
 }
 
-function MetricCard({ title, value, subtitle, icon, trend, color }: MetricCardProps) {
+function MetricCard({ title, value, subtitle, icon, trend, color, isPro = true, onUpgrade }: MetricCardProps) {
     const colorConfig = {
         blue: { bg: 'rgba(59, 130, 246, 0.1)', text: '#3b82f6' },
         violet: { bg: 'rgba(139, 92, 246, 0.1)', text: '#8b5cf6' },
@@ -366,7 +447,17 @@ function MetricCard({ title, value, subtitle, icon, trend, color }: MetricCardPr
     };
 
     return (
-        <div className="rounded-2xl p-5" style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}>
+        <div
+            className="rounded-2xl p-5 relative overflow-hidden group cursor-pointer"
+            style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}
+            onClick={() => !isPro && onUpgrade?.()}
+        >
+            {!isPro && (
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Lock className="w-6 h-6 text-amber-500" />
+                </div>
+            )}
+
             <div className="flex items-start justify-between mb-4">
                 <div
                     className="p-2.5 rounded-xl"
@@ -374,7 +465,9 @@ function MetricCard({ title, value, subtitle, icon, trend, color }: MetricCardPr
                 >
                     {icon}
                 </div>
-                {trend !== "neutral" && (
+                {!isPro ? (
+                    <Lock className="w-4 h-4 text-zinc-600" />
+                ) : trend !== "neutral" && (
                     <div style={{ color: trend === "up" ? "#10b981" : "#ef4444" }}>
                         {trend === "up" ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                     </div>
