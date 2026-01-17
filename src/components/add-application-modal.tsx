@@ -13,9 +13,10 @@ interface AddApplicationModalProps {
     open: boolean;
     onClose: () => void;
     onSuccess?: () => void;
+    optimisticUpdate?: (updater: (apps: any[]) => any[]) => void;
 }
 
-export function AddApplicationModal({ open, onClose, onSuccess }: AddApplicationModalProps) {
+export function AddApplicationModal({ open, onClose, onSuccess, optimisticUpdate }: AddApplicationModalProps) {
     const user = useUser();
     const [url, setUrl] = useState("");
     const [company, setCompany] = useState("");
@@ -52,7 +53,7 @@ export function AddApplicationModal({ open, onClose, onSuccess }: AddApplication
                 url: url || undefined,
                 platform,
                 status,
-            }, !!user);  // Pass authentication state
+            }, !!user, optimisticUpdate);  // Pass authentication state and optimistic update
 
             // Reset form
             setUrl("");

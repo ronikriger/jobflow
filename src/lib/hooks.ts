@@ -6,48 +6,75 @@ import type { Application, ApplicationEvent, Contact, Settings, UserProgress, Ap
 import { getNextActions, isStale } from "./utils";
 import { startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import { useUser } from "@stackframe/stack";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import * as serverActions from "./actions";
 
-// Hook to get all applications - hybrid: server for auth, local for guest
+// Simple in-memory cache for server data
+const appCache: { data: Application[] | null; timestamp: number } = { data: null, timestamp: 0 };
+const CACHE_TTL = 30000; // 30 seconds cache
+
+// Hook to get all applications - hybrid with caching and optimistic updates
 export function useApplications() {
     const user = useUser();
-    const [serverApps, setServerApps] = useState<Application[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshKey, setRefreshKey] = useState(0);
+    const [serverApps, setServerApps] = useState<Application[]>(() => appCache.data ?? []);
+    const [loading, setLoading] = useState(!appCache.data);
+    const fetchingRef = useRef(false);
 
     const localApps = useLiveQuery(() =>
         db.applications.orderBy("updatedAt").reverse().toArray()
         , []);
 
-    const refresh = useCallback(() => {
-        setRefreshKey(k => k + 1);
+    // Optimistic update function - updates local state immediately
+    const optimisticUpdate = useCallback((updater: (apps: Application[]) => Application[]) => {
+        setServerApps(prev => {
+            const updated = updater(prev);
+            appCache.data = updated;
+            return updated;
+        });
     }, []);
+
+    const refresh = useCallback(async (force = false) => {
+        if (!user || fetchingRef.current) return;
+
+        // Check cache validity
+        const now = Date.now();
+        if (!force && appCache.data && (now - appCache.timestamp) < CACHE_TTL) {
+            setServerApps(appCache.data);
+            return;
+        }
+
+        fetchingRef.current = true;
+        try {
+            const apps = await serverActions.getApplications();
+            appCache.data = apps;
+            appCache.timestamp = now;
+            setServerApps(apps);
+        } finally {
+            fetchingRef.current = false;
+            setLoading(false);
+        }
+    }, [user]);
 
     useEffect(() => {
         if (user) {
-            setLoading(true);
-            serverActions.getApplications().then((apps) => {
-                setServerApps(apps);
-                setLoading(false);
-            }).catch(() => setLoading(false));
+            refresh();
         } else {
             setLoading(false);
         }
-    }, [user, refreshKey]);
+    }, [user, refresh]);
 
     // Return server data for authenticated users, local for guests
     if (user) {
-        return { apps: serverApps, loading, refresh };
+        return { apps: serverApps, loading, refresh, optimisticUpdate };
     }
-    return { apps: localApps ?? [], loading: false, refresh };
+    return { apps: localApps ?? [], loading: false, refresh: async () => { }, optimisticUpdate: () => { } };
 }
 
 // Hook to get active applications (not archived)
 export function useActiveApplications() {
-    const { apps, loading, refresh } = useApplications();
+    const { apps, loading, refresh, optimisticUpdate } = useApplications();
     const filtered = apps.filter((app: Application) => !app.archived);
-    return { apps: filtered, loading, refresh };
+    return { apps: filtered, loading, refresh, optimisticUpdate };
 }
 
 // Hook to get a single application with related data
@@ -255,29 +282,58 @@ export function useDailyStats() {
     return { applied, goal, percentage };
 }
 
-// --- Hybrid Action Functions ---
-// These check if user is authenticated and use server actions if so, otherwise use local Dexie
+// --- Hybrid Action Functions with Optimistic Updates ---
+// These update local state immediately, then sync with server
 
 export async function addApplication(
     data: Omit<Application, "id" | "createdAt" | "updatedAt" | "lastTouchAt">,
-    isAuthenticated: boolean = false
+    isAuthenticated: boolean = false,
+    optimisticUpdate?: (updater: (apps: Application[]) => Application[]) => void
 ) {
+    const now = new Date();
+    const tempId = `temp-${Date.now()}`;
+
+    // Create optimistic application
+    const optimisticApp: Application = {
+        id: tempId,
+        ...data,
+        createdAt: now,
+        updatedAt: now,
+        lastTouchAt: now,
+        appliedAt: data.status !== "saved" ? now : undefined,
+    };
+
+    // Update UI immediately
+    if (optimisticUpdate) {
+        optimisticUpdate(apps => [optimisticApp, ...apps]);
+    }
+
     if (isAuthenticated) {
-        // Use server action for authenticated users
         try {
             const result = await serverActions.createApplication({
                 ...data,
-                lastTouchAt: new Date(),
+                lastTouchAt: now,
             });
+
+            // Replace temp with real data
+            if (optimisticUpdate) {
+                optimisticUpdate(apps =>
+                    apps.map(app => app.id === tempId ? { ...optimisticApp, id: result.id } : app)
+                );
+            }
+            appCache.timestamp = 0; // Invalidate cache
             return result.id;
         } catch (error) {
             console.error("Failed to save to server:", error);
-            // Fallback to local storage
+            // Remove optimistic update on error
+            if (optimisticUpdate) {
+                optimisticUpdate(apps => apps.filter(app => app.id !== tempId));
+            }
+            throw error;
         }
     }
 
     // Local storage for guests
-    const now = new Date();
     const app: Omit<Application, "id"> = {
         ...data,
         createdAt: now,
@@ -305,14 +361,24 @@ export async function addApplication(
 export async function updateApplicationStatus(
     id: string | number,
     newStatus: ApplicationStatus,
-    isAuthenticated: boolean = false
+    isAuthenticated: boolean = false,
+    optimisticUpdate?: (updater: (apps: Application[]) => Application[]) => void
 ) {
+    // Optimistic update
+    if (optimisticUpdate) {
+        optimisticUpdate(apps =>
+            apps.map(app => app.id === id ? { ...app, status: newStatus, updatedAt: new Date() } : app)
+        );
+    }
+
     if (isAuthenticated && typeof id === 'string') {
         try {
             await serverActions.updateApplication(id, { status: newStatus });
+            appCache.timestamp = 0; // Invalidate cache
             return;
         } catch (error) {
             console.error("Failed to update on server:", error);
+            // Could revert optimistic update here
         }
     }
 
@@ -345,11 +411,20 @@ export async function updateApplicationStatus(
 export async function updateApplication(
     id: string | number,
     data: Partial<Application>,
-    isAuthenticated: boolean = false
+    isAuthenticated: boolean = false,
+    optimisticUpdate?: (updater: (apps: Application[]) => Application[]) => void
 ) {
+    // Optimistic update
+    if (optimisticUpdate) {
+        optimisticUpdate(apps =>
+            apps.map(app => app.id === id ? { ...app, ...data, updatedAt: new Date() } : app)
+        );
+    }
+
     if (isAuthenticated && typeof id === 'string') {
         try {
             await serverActions.updateApplication(id, data);
+            appCache.timestamp = 0;
             return;
         } catch (error) {
             console.error("Failed to update on server:", error);
@@ -366,10 +441,20 @@ export async function updateApplication(
     }
 }
 
-export async function deleteApplication(id: string | number, isAuthenticated: boolean = false) {
+export async function deleteApplication(
+    id: string | number,
+    isAuthenticated: boolean = false,
+    optimisticUpdate?: (updater: (apps: Application[]) => Application[]) => void
+) {
+    // Optimistic update - remove immediately
+    if (optimisticUpdate) {
+        optimisticUpdate(apps => apps.filter(app => app.id !== id));
+    }
+
     if (isAuthenticated && typeof id === 'string') {
         try {
             await serverActions.deleteApplication(id);
+            appCache.timestamp = 0;
             return;
         } catch (error) {
             console.error("Failed to delete on server:", error);
@@ -485,8 +570,6 @@ export async function markPrepDone(applicationId: string | number, isAuthenticat
                 date: new Date(),
                 completed: true
             });
-            // Prepare doesn't have a specific event type in DB, 'note' is used locally.
-            // Server might need logic for XP if desired.
             return;
         } catch (error) {
             console.error("Failed to mark prep done on server:", error);

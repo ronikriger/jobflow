@@ -225,7 +225,7 @@ function KanbanColumn({
 
 export default function BoardPage() {
     const [isClient, setIsClient] = useState(false);
-    const { apps: applications, loading, refresh } = useActiveApplications();
+    const { apps: applications, loading, refresh, optimisticUpdate } = useActiveApplications();
     const [showAddModal, setShowAddModal] = useState(false);
     const [activeId, setActiveId] = useState<number | null>(null);
     const [overId, setOverId] = useState<ApplicationStatus | null>(null);
@@ -313,8 +313,8 @@ export default function BoardPage() {
         }
 
         if (newStatus && newStatus !== activeApp.status) {
-            await updateApplicationStatus(activeApp.id!, newStatus, true); // Assume auth for now, or get explicit state
-            refresh(); // Refresh after update
+            await updateApplicationStatus(activeApp.id!, newStatus, true, optimisticUpdate);
+            // No need to refresh - optimistic update already happened
         }
     };
 
@@ -355,7 +355,7 @@ export default function BoardPage() {
                         <Plus className="w-5 h-5" />
                         Add First Application
                     </button>
-                    <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} />
+                    <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} optimisticUpdate={optimisticUpdate} />
                 </div>
             </div>
         );
@@ -460,7 +460,7 @@ export default function BoardPage() {
                     {activeApplication && <StaticCard application={activeApplication} />}
                 </DragOverlay>
 
-                <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} />
+                <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} optimisticUpdate={optimisticUpdate} />
             </div>
         </DndContext>
     );

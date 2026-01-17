@@ -53,7 +53,7 @@ export default function DashboardPage() {
     };
 
     const progress = useUserProgress();
-    const { apps: applications, loading, refresh } = useActiveApplications();
+    const { apps: applications, loading, refresh, optimisticUpdate } = useActiveApplications();
 
     // Ensure we're on the client
     useEffect(() => {
@@ -115,7 +115,7 @@ export default function DashboardPage() {
                                 Add Your First Application
                                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                             </button>
-                            <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} />
+                            <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} optimisticUpdate={optimisticUpdate} />
                         </motion.div>
 
                         <motion.div
@@ -149,7 +149,7 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} />
+                <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} optimisticUpdate={optimisticUpdate} />
             </div>
         );
     }
@@ -390,7 +390,7 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} />
+            <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} optimisticUpdate={optimisticUpdate} />
         </div>
     );
 }
