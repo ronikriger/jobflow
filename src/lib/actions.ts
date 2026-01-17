@@ -531,3 +531,37 @@ export async function getAuthStatus(): Promise<{ isAuthenticated: boolean; user:
         },
     };
 }
+
+// ============ SUBSCRIPTION ============
+
+const FREE_TIER_LIMIT = 15;
+
+export async function getSubscriptionStatus(): Promise<{
+    tier: "free" | "pro";
+    appCount: number;
+    limit: number;
+    canAddMore: boolean;
+}> {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+        return { tier: "free", appCount: 0, limit: FREE_TIER_LIMIT, canAddMore: true };
+    }
+
+    // Get app count
+    const appCount = await prisma.application.count({
+        where: { userId },
+    });
+
+    // Get subscription tier
+    const settings = await prisma.userSettings.findUnique({
+        where: { userId },
+        select: { subscriptionTier: true },
+    });
+
+    const tier = (settings?.subscriptionTier === "pro" ? "pro" : "free") as "free" | "pro";
+    const limit = tier === "pro" ? Infinity : FREE_TIER_LIMIT;
+    const canAddMore = tier === "pro" || appCount < FREE_TIER_LIMIT;
+
+    return { tier, appCount, limit, canAddMore };
+}
+

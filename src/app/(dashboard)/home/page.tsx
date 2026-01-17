@@ -30,14 +30,23 @@ import { useUser } from "@stackframe/stack";
 import { useActiveApplications, markFollowUpSent, markPrepDone } from "@/lib/hooks";
 import { ApplicationCardCompact } from "@/components/application-card";
 import { AddApplicationModal } from "@/components/add-application-modal";
+import { UpgradeModal } from "@/components/upgrade-modal";
 import { DashboardSkeleton } from "@/components/skeleton";
+import { getSubscriptionStatus } from "@/lib/actions";
 import type { NextAction } from "@/lib/types";
 import Link from "next/link";
 
 export default function DashboardPage() {
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [isClient, setIsClient] = useState(false);
     const [dismissedActionIds, setDismissedActionIds] = useState<Set<string>>(new Set());
+    const [subscriptionStatus, setSubscriptionStatus] = useState<{
+        tier: "free" | "pro";
+        appCount: number;
+        limit: number;
+        canAddMore: boolean;
+    } | null>(null);
 
     const weeklyStats = useWeeklyStats();
     const dailyStats = useDailyStats();
@@ -59,6 +68,8 @@ export default function DashboardPage() {
     // Ensure we're on the client
     useEffect(() => {
         setIsClient(true);
+        // Fetch subscription status
+        getSubscriptionStatus().then(setSubscriptionStatus);
     }, []);
 
     // Show skeleton loading until client-side data is ready
@@ -70,6 +81,15 @@ export default function DashboardPage() {
     const activeAppsCount = applications?.filter(
         (a) => !["rejected", "ghosted", "offer"].includes(a.status)
     ).length ?? 0;
+
+    // Handle add button click - check subscription limit
+    const handleAddClick = () => {
+        if (subscriptionStatus && !subscriptionStatus.canAddMore) {
+            setShowUpgradeModal(true);
+        } else {
+            setShowAddModal(true);
+        }
+    };
 
     // Empty state for new users
     if (!hasApplications) {
@@ -101,7 +121,7 @@ export default function DashboardPage() {
                             className="pt-4"
                         >
                             <button
-                                onClick={() => setShowAddModal(true)}
+                                onClick={handleAddClick}
                                 className="group inline-flex items-center gap-3 px-10 py-5 rounded-2xl text-white font-semibold text-lg transition-all shadow-lg hover:shadow-2xl hover:-translate-y-1 hover-glow"
                                 style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)' }}
                             >
@@ -165,7 +185,7 @@ export default function DashboardPage() {
                         </p>
                     </div>
                     <button
-                        onClick={() => setShowAddModal(true)}
+                        onClick={handleAddClick}
                         className="group flex items-center gap-2 px-6 py-3 rounded-xl text-white font-medium transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 hover-glow"
                         style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' }}
                     >
@@ -371,7 +391,7 @@ export default function DashboardPage() {
                         <p className="text-xs" style={{ color: '#71717a' }}>Set targets</p>
                     </Link>
                     <button
-                        onClick={() => setShowAddModal(true)}
+                        onClick={handleAddClick}
                         className="rounded-xl p-4 transition-all group text-left"
                         style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}
                     >
@@ -384,7 +404,21 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} optimisticUpdate={optimisticUpdate} />
+            <AddApplicationModal
+                open={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSuccess={() => {
+                    refresh();
+                    getSubscriptionStatus().then(setSubscriptionStatus);
+                }}
+                optimisticUpdate={optimisticUpdate}
+            />
+            <UpgradeModal
+                open={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                currentApps={subscriptionStatus?.appCount ?? 0}
+                maxApps={15}
+            />
         </div>
     );
 }

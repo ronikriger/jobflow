@@ -29,6 +29,8 @@ import type { Application, ApplicationStatus } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useToast } from "@/components/toast";
+import { UpgradeModal } from "@/components/upgrade-modal";
+import { getSubscriptionStatus } from "@/lib/actions";
 
 const PIPELINE_STAGES: { id: ApplicationStatus; title: string; color: string }[] = [
     { id: "saved", title: "Saved", color: "#818cf8" },
@@ -230,12 +232,17 @@ export default function BoardPage() {
     const { apps: applications, loading, refresh, optimisticUpdate } = useActiveApplications();
     const { showToast } = useToast();
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [activeId, setActiveId] = useState<number | null>(null);
     const [overId, setOverId] = useState<ApplicationStatus | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [subscriptionStatus, setSubscriptionStatus] = useState<{
+        tier: "free" | "pro"; appCount: number; limit: number; canAddMore: boolean;
+    } | null>(null);
 
     useEffect(() => {
         setIsClient(true);
+        getSubscriptionStatus().then(setSubscriptionStatus);
     }, []);
 
     const sensors = useSensors(
@@ -325,6 +332,15 @@ export default function BoardPage() {
     const totalActive = applications?.filter((a) => !["rejected", "ghosted"].includes(a.status)).length ?? 0;
     const hasApplications = applications && applications.length > 0;
 
+    // Handle add button click - check subscription limit
+    const handleAddClick = () => {
+        if (subscriptionStatus && !subscriptionStatus.canAddMore) {
+            setShowUpgradeModal(true);
+        } else {
+            setShowAddModal(true);
+        }
+    };
+
     if (!isClient || loading) {
         return <BoardSkeleton />;
     }
@@ -345,7 +361,7 @@ export default function BoardPage() {
                         Start tracking your job search journey with a visual Kanban board.
                     </p>
                     <button
-                        onClick={() => setShowAddModal(true)}
+                        onClick={handleAddClick}
                         className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-medium transition-all shadow-lg"
                         style={{ background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)' }}
                     >
@@ -396,7 +412,7 @@ export default function BoardPage() {
                         </div>
 
                         <button
-                            onClick={() => setShowAddModal(true)}
+                            onClick={handleAddClick}
                             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-medium transition-all shadow-lg text-sm"
                             style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}
                         >
@@ -457,7 +473,21 @@ export default function BoardPage() {
                     {activeApplication && <StaticCard application={activeApplication} />}
                 </DragOverlay>
 
-                <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} optimisticUpdate={optimisticUpdate} />
+                <AddApplicationModal
+                    open={showAddModal}
+                    onClose={() => setShowAddModal(false)}
+                    onSuccess={() => {
+                        refresh();
+                        getSubscriptionStatus().then(setSubscriptionStatus);
+                    }}
+                    optimisticUpdate={optimisticUpdate}
+                />
+                <UpgradeModal
+                    open={showUpgradeModal}
+                    onClose={() => setShowUpgradeModal(false)}
+                    currentApps={subscriptionStatus?.appCount ?? 0}
+                    maxApps={15}
+                />
             </div>
         </DndContext>
     );

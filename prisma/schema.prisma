@@ -91,6 +91,11 @@ model UserSettings {
   ghostedDays           Int      @default(21)
   streakGraceDays       Int      @default(2)
   darkMode              Boolean  @default(true)
+  // Subscription fields
+  subscriptionTier      String   @default("free") // "free" or "pro"
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  subscriptionExpiry    DateTime?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }
