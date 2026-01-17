@@ -24,9 +24,11 @@ import { CSS } from "@dnd-kit/utilities";
 import { Plus, Search, Sparkles, GripVertical, Building2, MapPin, Clock, ExternalLink } from "lucide-react";
 import { useActiveApplications, updateApplicationStatus } from "@/lib/hooks";
 import { AddApplicationModal } from "@/components/add-application-modal";
+import { BoardSkeleton } from "@/components/skeleton";
 import type { Application, ApplicationStatus } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
+import { useToast } from "@/components/toast";
 
 const PIPELINE_STAGES: { id: ApplicationStatus; title: string; color: string }[] = [
     { id: "saved", title: "Saved", color: "#818cf8" },
@@ -226,6 +228,7 @@ function KanbanColumn({
 export default function BoardPage() {
     const [isClient, setIsClient] = useState(false);
     const { apps: applications, loading, refresh, optimisticUpdate } = useActiveApplications();
+    const { showToast } = useToast();
     const [showAddModal, setShowAddModal] = useState(false);
     const [activeId, setActiveId] = useState<number | null>(null);
     const [overId, setOverId] = useState<ApplicationStatus | null>(null);
@@ -313,8 +316,9 @@ export default function BoardPage() {
         }
 
         if (newStatus && newStatus !== activeApp.status) {
+            const stageName = PIPELINE_STAGES.find(s => s.id === newStatus)?.title || newStatus;
             await updateApplicationStatus(activeApp.id!, newStatus, true, optimisticUpdate);
-            // No need to refresh - optimistic update already happened
+            showToast(`Moved ${activeApp.company} to ${stageName}`, "success");
         }
     };
 
@@ -322,14 +326,7 @@ export default function BoardPage() {
     const hasApplications = applications && applications.length > 0;
 
     if (!isClient || loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#09090b' }}>
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <p style={{ color: '#a1a1aa' }}>Loading pipeline...</p>
-                </div>
-            </div>
-        );
+        return <BoardSkeleton />;
     }
 
     // Empty state

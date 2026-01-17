@@ -8,6 +8,7 @@ import { parseCompanyFromUrl, detectPlatformFromUrl, cn } from "@/lib/utils";
 import type { Platform, ApplicationStatus } from "@/lib/types";
 import { PLATFORM_CONFIG } from "@/lib/types";
 import { useUser } from "@stackframe/stack";
+import { useToast } from "@/components/toast";
 
 interface AddApplicationModalProps {
     open: boolean;
@@ -18,6 +19,7 @@ interface AddApplicationModalProps {
 
 export function AddApplicationModal({ open, onClose, onSuccess, optimisticUpdate }: AddApplicationModalProps) {
     const user = useUser();
+    const { showToast } = useToast();
     const [url, setUrl] = useState("");
     const [company, setCompany] = useState("");
     const [role, setRole] = useState("");
@@ -65,9 +67,11 @@ export function AddApplicationModal({ open, onClose, onSuccess, optimisticUpdate
             setStatus("applied");
 
             onSuccess?.();  // Trigger refresh
+            showToast(`Added ${company} - ${role}`, "success");
             onClose();
         } catch (error) {
             console.error("Failed to add application:", error);
+            showToast("Failed to add application", "error");
         } finally {
             setIsSubmitting(false);
         }

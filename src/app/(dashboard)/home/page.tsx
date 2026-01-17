@@ -30,6 +30,7 @@ import { useUser } from "@stackframe/stack";
 import { useActiveApplications, markFollowUpSent, markPrepDone } from "@/lib/hooks";
 import { ApplicationCardCompact } from "@/components/application-card";
 import { AddApplicationModal } from "@/components/add-application-modal";
+import { DashboardSkeleton } from "@/components/skeleton";
 import type { NextAction } from "@/lib/types";
 import Link from "next/link";
 
@@ -60,16 +61,9 @@ export default function DashboardPage() {
         setIsClient(true);
     }, []);
 
-    // Show loading until client-side
+    // Show skeleton loading until client-side data is ready
     if (!isClient || loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#09090b' }}>
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <p style={{ color: '#a1a1aa' }}>Loading...</p>
-                </div>
-            </div>
-        );
+        return <DashboardSkeleton />;
     }
 
     const hasApplications = applications && applications.length > 0;

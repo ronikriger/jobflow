@@ -6,6 +6,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Analytics } from "@vercel/analytics/next";
 import { DataMigration } from "@/components/data-migration";
+import { ToastProvider } from "@/components/toast";
 
 const instrumentSans = Instrument_Sans({
     subsets: ["latin"],
@@ -41,8 +42,10 @@ export default function RootLayout({
                 className={`${instrumentSans.variable} ${jetbrainsMono.variable} font-sans antialiased bg-zinc-950 text-white`}
             ><StackProvider app={stackClientApp}><StackTheme>
                 <Providers>
-                    <DataMigration />
-                    {children}
+                    <ToastProvider>
+                        <DataMigration />
+                        {children}
+                    </ToastProvider>
                 </Providers>
                 <Analytics />
             </StackTheme></StackProvider></body>
