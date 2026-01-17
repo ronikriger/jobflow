@@ -118,29 +118,6 @@ export function AddApplicationModal({ open, onClose, onSuccess }: AddApplication
                             {/* Scrollable Form Content */}
                             <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
                                 <div className="p-6 space-y-5 overflow-y-auto flex-1">
-                                    {/* URL field with paste detection */}
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                                            <LinkIcon className="w-4 h-4 text-zinc-500" />
-                                            Job URL
-                                        </label>
-                                        <input
-                                            type="url"
-                                            value={url}
-                                            onChange={(e) => setUrl(e.target.value)}
-                                            placeholder="Paste job posting URL"
-                                            className={inputClassName}
-                                        />
-                                        {url && platform !== "other" && (
-                                            <motion.p
-                                                initial={{ opacity: 0, y: -5 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                className="text-xs text-zinc-500 flex items-center gap-1"
-                                            >
-                                                Detected: <span className="text-blue-400 font-medium">{PLATFORM_CONFIG[platform].label}</span>
-                                            </motion.p>
-                                        )}
-                                    </div>
 
                                     {/* Company & Role row */}
                                     <div className="grid grid-cols-2 gap-4">
