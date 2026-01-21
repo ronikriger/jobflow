@@ -3,10 +3,12 @@
 
 User-agent: *
 Allow: /
+# Disallow internal app routes from being indexed (focus on landing page)
+Disallow: /board
+Disallow: /analytics
+Disallow: /settings
+Disallow: /handler/
+Disallow: /api/
 
 # Sitemap location
 Sitemap: https://trackjobapplications.vercel.app/sitemap.xml
-
-# Disallow private/auth routes
-Disallow: /handler/
-Disallow: /api/
