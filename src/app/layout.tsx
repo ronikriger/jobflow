@@ -41,7 +41,7 @@ export const metadata: Metadata = {
         type: "website",
         images: [
             {
-                url: "/og-image.png",
+                url: "/api/og",
                 width: 1200,
                 height: 630,
                 alt: "JobFlow - Job Application Tracker",
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
         card: "summary_large_image",
         title: "JobFlow | Free Job Application Tracker",
         description: "Track your job applications and land your dream job faster. Free with Kanban board & analytics.",
-        images: ["/og-image.png"],
+        images: ["/api/og"],
     },
     robots: {
         index: true,
