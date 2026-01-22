@@ -33,6 +33,7 @@ import { AddApplicationModal } from "@/components/add-application-modal";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { DashboardSkeleton } from "@/components/skeleton";
 import { getSubscriptionStatus } from "@/lib/actions";
+import { ShareProgress } from "@/components/share-progress";
 import type { NextAction } from "@/lib/types";
 import Link from "next/link";
 
@@ -366,6 +367,9 @@ export default function DashboardPage() {
                         </div>
                     </div>
                 )}
+
+                {/* Share Progress */}
+                <ShareProgress />
 
                 {/* Quick Actions */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
