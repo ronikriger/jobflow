@@ -127,6 +127,9 @@ export interface Settings {
     ghostedDays: number; // Days without response to mark as ghosted candidate
     streakGraceDays: number; // Grace days before streak breaks
     darkMode: boolean;
+    // Email preferences
+    emailReminders?: boolean; // User opted in to email reminders
+    emailFrequency?: "daily" | "weekly"; // How often to send emails
     createdAt: Date;
     updatedAt: Date;
 }

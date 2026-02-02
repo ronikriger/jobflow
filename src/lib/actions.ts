@@ -79,6 +79,46 @@ export async function getApplication(id: string): Promise<Application | null> {
     };
 }
 
+// Migrate guest data when user logs in
+export async function migrateGuestData(
+    applications: Omit<Application, "id" | "createdAt" | "updatedAt">[]
+): Promise<{ migrated: number }> {
+    const userId = await requireAuth();
+
+    if (applications.length === 0) {
+        return { migrated: 0 };
+    }
+
+    // Create all applications in a transaction
+    const result = await prisma.$transaction(
+        applications.map((data) =>
+            prisma.application.create({
+                data: {
+                    userId,
+                    company: data.company,
+                    role: data.role,
+                    location: data.location,
+                    salary: data.salary,
+                    url: data.url,
+                    platform: data.platform,
+                    status: data.status,
+                    priority: data.priority ?? "medium",
+                    notes: data.notes,
+                    appliedAt: data.appliedAt,
+                    lastTouchAt: data.lastTouchAt ?? new Date(),
+                },
+            })
+        )
+    );
+
+    // Update user progress for each application
+    for (let i = 0; i < result.length; i++) {
+        await updateProgressStats("application");
+    }
+
+    return { migrated: result.length };
+}
+
 export async function createApplication(
     data: Omit<Application, "id" | "createdAt" | "updatedAt">
 ): Promise<Application> {
@@ -453,6 +493,8 @@ export async function getUserSettingsFromDB(): Promise<Settings | null> {
                 ghostedDays: 21,
                 streakGraceDays: 2,
                 darkMode: true,
+                emailReminders: false,
+                emailFrequency: "daily",
             },
         });
     }
@@ -466,6 +508,8 @@ export async function getUserSettingsFromDB(): Promise<Settings | null> {
         ghostedDays: settings.ghostedDays,
         streakGraceDays: settings.streakGraceDays,
         darkMode: settings.darkMode,
+        emailReminders: settings.emailReminders,
+        emailFrequency: settings.emailFrequency as "daily" | "weekly",
         createdAt: settings.createdAt,
         updatedAt: settings.updatedAt,
     };
@@ -486,6 +530,8 @@ export async function updateUserSettings(
             ghostedDays: data.ghostedDays,
             streakGraceDays: data.streakGraceDays,
             darkMode: data.darkMode,
+            emailReminders: data.emailReminders,
+            emailFrequency: data.emailFrequency,
         },
         create: {
             userId,
@@ -496,6 +542,8 @@ export async function updateUserSettings(
             ghostedDays: data.ghostedDays ?? 21,
             streakGraceDays: data.streakGraceDays ?? 2,
             darkMode: data.darkMode ?? true,
+            emailReminders: data.emailReminders ?? false,
+            emailFrequency: data.emailFrequency ?? "daily",
         },
     });
 
@@ -508,6 +556,8 @@ export async function updateUserSettings(
         ghostedDays: settings.ghostedDays,
         streakGraceDays: settings.streakGraceDays,
         darkMode: settings.darkMode,
+        emailReminders: settings.emailReminders,
+        emailFrequency: settings.emailFrequency as "daily" | "weekly",
         createdAt: settings.createdAt,
         updatedAt: settings.updatedAt,
     };
@@ -534,7 +584,7 @@ export async function getAuthStatus(): Promise<{ isAuthenticated: boolean; user:
 
 // ============ SUBSCRIPTION ============
 
-const FREE_TIER_LIMIT = 15;
+const FREE_TIER_LIMIT = 20;
 
 export async function getSubscriptionStatus(): Promise<{
     tier: "free" | "pro";
@@ -565,3 +615,38 @@ export async function getSubscriptionStatus(): Promise<{
     return { tier, appCount, limit, canAddMore };
 }
 
+export async function createBillingPortalSession(): Promise<{ url: string } | { error: string }> {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+        return { error: "Authentication required" };
+    }
+
+    // Get user's Stripe customer ID
+    const settings = await prisma.userSettings.findUnique({
+        where: { userId },
+        select: { stripeCustomerId: true },
+    });
+
+    if (!settings?.stripeCustomerId) {
+        return { error: "No billing information found" };
+    }
+
+    try {
+        // Dynamic import to avoid issues at build time
+        const { stripe } = await import("./stripe");
+
+        if (!stripe) {
+            return { error: "Billing system unavailable" };
+        }
+
+        const session = await stripe.billingPortal.sessions.create({
+            customer: settings.stripeCustomerId,
+            return_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://trackjobflow.com"}/settings`,
+        });
+
+        return { url: session.url };
+    } catch (error) {
+        console.error("Failed to create billing portal session:", error);
+        return { error: "Failed to open billing portal" };
+    }
+}

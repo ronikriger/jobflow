@@ -14,6 +14,10 @@ import {
     FileSpreadsheet,
     FileText,
     Lock,
+    CreditCard,
+    ExternalLink,
+    Mail,
+    Bell,
 } from "lucide-react";
 import { useSettings, updateSettings, useActiveApplications } from "@/lib/hooks";
 import { useUser } from "@stackframe/stack";
@@ -22,7 +26,8 @@ import { exportToCSV, exportToPDF } from "@/lib/export";
 import { cn } from "@/lib/utils";
 import { ProBadge, UpgradeToPro } from "@/components/pro-badge";
 import { UpgradeModal } from "@/components/upgrade-modal";
-import { getSubscriptionStatus } from "@/lib/actions";
+import { useSubscription } from "@/components/subscription-provider";
+import { createBillingPortalSession } from "@/lib/actions";
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -48,14 +53,33 @@ export default function SettingsPage() {
         ghostedDays: 21,
         streakGraceDays: 2,
         darkMode: true,
+        emailReminders: false,
+        emailFrequency: "daily" as "daily" | "weekly",
     });
     const [saving, setSaving] = useState(false);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-    const [subscriptionStatus, setSubscriptionStatus] = useState<{
-        tier: "free" | "pro"; appCount: number; limit: number; canAddMore: boolean;
-    } | null>(null);
+    const [billingLoading, setBillingLoading] = useState(false);
+
+    // Use shared subscription context
+    const { subscription: subscriptionStatus } = useSubscription();
     const { apps: applications } = useActiveApplications();
+
+    const handleManageBilling = async () => {
+        setBillingLoading(true);
+        try {
+            const result = await createBillingPortalSession();
+            if ("url" in result) {
+                window.location.href = result.url;
+            } else {
+                alert(result.error || "Failed to open billing portal");
+            }
+        } catch (error) {
+            alert("Failed to open billing portal");
+        } finally {
+            setBillingLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (settings) {
@@ -67,13 +91,11 @@ export default function SettingsPage() {
                 ghostedDays: settings.ghostedDays,
                 streakGraceDays: settings.streakGraceDays,
                 darkMode: settings.darkMode,
+                emailReminders: settings.emailReminders ?? false,
+                emailFrequency: settings.emailFrequency ?? "daily",
             });
         }
     }, [settings]);
-
-    useEffect(() => {
-        getSubscriptionStatus().then(setSubscriptionStatus);
-    }, []);
 
     const handleSave = async () => {
         setSaving(true);
@@ -185,7 +207,7 @@ export default function SettingsPage() {
                             <p className="text-sm text-muted-foreground">
                                 {subscriptionStatus?.tier === "pro"
                                     ? "You have access to all premium features"
-                                    : `${subscriptionStatus?.appCount || 0} / ${subscriptionStatus?.limit || 15} applications used`}
+                                    : `${subscriptionStatus?.appCount || 0} / ${subscriptionStatus?.limit || 20} applications used`}
                             </p>
                         </div>
 
@@ -193,6 +215,28 @@ export default function SettingsPage() {
                             <UpgradeToPro onClick={() => setShowUpgradeModal(true)} />
                         )}
                     </div>
+
+                    {/* Manage Subscription Button for Pro users */}
+                    {subscriptionStatus?.tier === "pro" && (
+                        <button
+                            onClick={handleManageBilling}
+                            disabled={billingLoading}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed relative z-10"
+                        >
+                            {billingLoading ? (
+                                <>
+                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                    Opening billing portal...
+                                </>
+                            ) : (
+                                <>
+                                    <CreditCard className="w-4 h-4" />
+                                    Manage Subscription
+                                    <ExternalLink className="w-3.5 h-3.5 ml-1 opacity-50" />
+                                </>
+                            )}
+                        </button>
+                    )}
                 </motion.div>
 
                 {/* Goals Section */}
@@ -218,7 +262,7 @@ export default function SettingsPage() {
                                 <input
                                     type="range"
                                     min="1"
-                                    max="20"
+                                    max="100"
                                     value={localSettings.weeklyGoal}
                                     onChange={(e) =>
                                         setLocalSettings({
@@ -243,7 +287,7 @@ export default function SettingsPage() {
                                 <input
                                     type="range"
                                     min="1"
-                                    max="10"
+                                    max="25"
                                     value={localSettings.dailyGoal}
                                     onChange={(e) =>
                                         setLocalSettings({
@@ -371,6 +415,102 @@ export default function SettingsPage() {
                         </div>
                     </div>
                 </motion.div>
+
+                {/* Email Preferences - Only for logged in users */}
+                {user && (
+                    <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6 space-y-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-blue-500/10">
+                                <Mail className="w-5 h-5 text-blue-400" />
+                            </div>
+                            <div>
+                                <h2 className="font-semibold">Email Notifications</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Get reminders via email
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* Enable/Disable Toggle */}
+                            <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
+                                <div className="flex items-center gap-3">
+                                    <Bell className="w-5 h-5 text-blue-400" />
+                                    <div>
+                                        <p className="font-medium">Email Reminders</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Receive follow-up reminders via email
+                                        </p>
+                                    </div>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={localSettings.emailReminders}
+                                        onChange={(e) =>
+                                            setLocalSettings({
+                                                ...localSettings,
+                                                emailReminders: e.target.checked,
+                                            })
+                                        }
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                                </label>
+                            </div>
+
+                            {/* Frequency Selection - Only show when enabled */}
+                            {localSettings.emailReminders && (
+                                <div className="space-y-3 pl-4 border-l-2 border-blue-500/30">
+                                    <p className="text-sm font-medium">Email Frequency</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setLocalSettings({
+                                                    ...localSettings,
+                                                    emailFrequency: "daily",
+                                                })
+                                            }
+                                            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${localSettings.emailFrequency === "daily"
+                                                    ? "bg-blue-500 text-white"
+                                                    : "bg-secondary hover:bg-secondary/80"
+                                                }`}
+                                        >
+                                            <div className="flex flex-col items-center gap-1">
+                                                <span>Daily</span>
+                                                <span className="text-xs opacity-70">Follow-up alerts</span>
+                                            </div>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setLocalSettings({
+                                                    ...localSettings,
+                                                    emailFrequency: "weekly",
+                                                })
+                                            }
+                                            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${localSettings.emailFrequency === "weekly"
+                                                    ? "bg-blue-500 text-white"
+                                                    : "bg-secondary hover:bg-secondary/80"
+                                                }`}
+                                        >
+                                            <div className="flex flex-col items-center gap-1">
+                                                <span>Weekly</span>
+                                                <span className="text-xs opacity-70">Digest + stats</span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        {localSettings.emailFrequency === "daily"
+                                            ? "You'll receive an email when you have applications that need follow-up."
+                                            : "You'll receive a weekly summary every Monday with your stats and pending follow-ups."}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
 
                 {/* Data Management */}
                 <motion.div variants={itemVariants} className="glass-card rounded-2xl p-6 space-y-4">
@@ -506,7 +646,7 @@ export default function SettingsPage() {
                 open={showUpgradeModal}
                 onClose={() => setShowUpgradeModal(false)}
                 currentApps={subscriptionStatus?.appCount ?? 0}
-                maxApps={15}
+                maxApps={20}
             />
         </div>
     );

@@ -155,7 +155,7 @@ export async function GET(request: Request) {
                             }}
                         >
                             <span>Track your job search at</span>
-                            <span style={{ color: '#3b82f6', fontWeight: 600 }}>trackjobapplications.vercel.app</span>
+                            <span style={{ color: '#3b82f6', fontWeight: 600 }}>trackjobflow.com</span>
                         </div>
                     </div>
                 </div>

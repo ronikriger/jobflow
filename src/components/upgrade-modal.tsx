@@ -98,7 +98,7 @@ export function UpgradeModal({ open, onClose, currentApps, maxApps }: UpgradeMod
                                         <span className="text-4xl font-bold text-white">$0.99</span>
                                         <span className="text-zinc-400">/month</span>
                                     </div>
-                                    <p className="text-sm text-zinc-500 mt-1">Cancel anytime</p>
+                                    <p className="text-sm text-zinc-500 mt-1">Less than a coffee · Cancel anytime</p>
                                 </div>
 
                                 {/* Features */}

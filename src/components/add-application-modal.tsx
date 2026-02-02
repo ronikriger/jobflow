@@ -14,10 +14,11 @@ interface AddApplicationModalProps {
     open: boolean;
     onClose: () => void;
     onSuccess?: () => void;
+    onGuestSuccess?: (applicationCount: number) => void;
     optimisticUpdate?: (updater: (apps: any[]) => any[]) => void;
 }
 
-export function AddApplicationModal({ open, onClose, onSuccess, optimisticUpdate }: AddApplicationModalProps) {
+export function AddApplicationModal({ open, onClose, onSuccess, onGuestSuccess, optimisticUpdate }: AddApplicationModalProps) {
     const user = useUser();
     const { showToast } = useToast();
     const [url, setUrl] = useState("");
@@ -69,6 +70,18 @@ export function AddApplicationModal({ open, onClose, onSuccess, optimisticUpdate
             onSuccess?.();  // Trigger refresh
             showToast(`Added ${company} - ${role}`, "success");
             onClose();
+
+            // Trigger guest signup prompt if user is not logged in
+            if (!user && onGuestSuccess) {
+                // Get current count from localStorage (Dexie stores data there)
+                try {
+                    const { db } = await import("@/lib/db");
+                    const count = await db.applications.count();
+                    onGuestSuccess(count);
+                } catch {
+                    onGuestSuccess(1);
+                }
+            }
         } catch (error) {
             console.error("Failed to add application:", error);
             showToast("Failed to add application", "error");

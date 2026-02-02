@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, memo, useCallback, useMemo } from "react";
 import {
     Plus,
     Target,
@@ -18,7 +17,6 @@ import {
     ArrowRight,
     Zap,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import {
     useWeeklyStats,
     useDailyStats,
@@ -32,8 +30,9 @@ import { ApplicationCardCompact } from "@/components/application-card";
 import { AddApplicationModal } from "@/components/add-application-modal";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { DashboardSkeleton } from "@/components/skeleton";
-import { getSubscriptionStatus } from "@/lib/actions";
+import { useSubscription } from "@/components/subscription-provider";
 import { ShareProgress } from "@/components/share-progress";
+import { GuestSignupPrompt, useGuestSignupPrompt } from "@/components/guest-signup-prompt";
 import type { NextAction } from "@/lib/types";
 import Link from "next/link";
 
@@ -42,12 +41,12 @@ export default function DashboardPage() {
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [isClient, setIsClient] = useState(false);
     const [dismissedActionIds, setDismissedActionIds] = useState<Set<string>>(new Set());
-    const [subscriptionStatus, setSubscriptionStatus] = useState<{
-        tier: "free" | "pro";
-        appCount: number;
-        limit: number;
-        canAddMore: boolean;
-    } | null>(null);
+
+    // Use shared subscription context instead of local state
+    const { subscription: subscriptionStatus, loading: subscriptionLoading, refresh: refreshSubscription } = useSubscription();
+
+    // Guest signup prompt
+    const { showPrompt: showGuestPrompt, appCount: guestAppCount, triggerPrompt, closePrompt } = useGuestSignupPrompt();
 
     const weeklyStats = useWeeklyStats();
     const dailyStats = useDailyStats();
@@ -69,12 +68,10 @@ export default function DashboardPage() {
     // Ensure we're on the client
     useEffect(() => {
         setIsClient(true);
-        // Fetch subscription status
-        getSubscriptionStatus().then(setSubscriptionStatus);
     }, []);
 
-    // Show skeleton loading until client-side data is ready
-    if (!isClient || loading) {
+    // Show skeleton loading until client-side data AND subscription are ready
+    if (!isClient || loading || subscriptionLoading) {
         return <DashboardSkeleton />;
     }
 
@@ -98,15 +95,12 @@ export default function DashboardPage() {
             <div className="min-h-screen p-8" style={{ backgroundColor: '#09090b' }}>
                 <div className="max-w-2xl mx-auto pt-20">
                     <div className="text-center space-y-6">
-                        <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                            className="w-24 h-24 mx-auto rounded-3xl flex items-center justify-center shadow-2xl float pulse-glow"
+                        <div
+                            className="w-24 h-24 mx-auto rounded-3xl flex items-center justify-center shadow-2xl float pulse-glow animate-scale-in"
                             style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%)' }}
                         >
                             <Rocket className="w-12 h-12 text-white" />
-                        </motion.div>
+                        </div>
 
                         <div className="space-y-3">
                             <h1 className="text-4xl font-bold tracking-tight" style={{ color: 'white' }}>Welcome to JobFlow</h1>
@@ -115,12 +109,7 @@ export default function DashboardPage() {
                             </p>
                         </div>
 
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.4 }}
-                            className="pt-4"
-                        >
+                        <div className="pt-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
                             <button
                                 onClick={handleAddClick}
                                 className="group inline-flex items-center gap-3 px-10 py-5 rounded-2xl text-white font-semibold text-lg transition-all shadow-lg hover:shadow-2xl hover:-translate-y-1 hover-glow"
@@ -130,15 +119,17 @@ export default function DashboardPage() {
                                 Add Your First Application
                                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                             </button>
-                            <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} optimisticUpdate={optimisticUpdate} />
-                        </motion.div>
+                            <AddApplicationModal
+                                open={showAddModal}
+                                onClose={() => setShowAddModal(false)}
+                                onSuccess={refresh}
+                                onGuestSuccess={triggerPrompt}
+                                optimisticUpdate={optimisticUpdate}
+                            />
+                            <GuestSignupPrompt open={showGuestPrompt} onClose={closePrompt} applicationCount={guestAppCount} />
+                        </div>
 
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.6 }}
-                            className="pt-12 grid grid-cols-3 gap-6 text-center"
-                        >
+                        <div className="pt-12 grid grid-cols-3 gap-6 text-center animate-fade-in" style={{ animationDelay: '0.4s' }}>
                             <div className="space-y-2">
                                 <div className="w-12 h-12 mx-auto rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
                                     <Target className="w-6 h-6" style={{ color: '#10b981' }} />
@@ -160,11 +151,18 @@ export default function DashboardPage() {
                                 <h3 className="font-semibold" style={{ color: 'white' }}>Stay Motivated</h3>
                                 <p className="text-sm" style={{ color: '#71717a' }}>XP, streaks & badges</p>
                             </div>
-                        </motion.div>
+                        </div>
                     </div>
                 </div>
 
-                <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} optimisticUpdate={optimisticUpdate} />
+                <AddApplicationModal
+                    open={showAddModal}
+                    onClose={() => setShowAddModal(false)}
+                    onSuccess={refresh}
+                    onGuestSuccess={triggerPrompt}
+                    optimisticUpdate={optimisticUpdate}
+                />
+                <GuestSignupPrompt open={showGuestPrompt} onClose={closePrompt} applicationCount={guestAppCount} />
             </div>
         );
     }
@@ -413,21 +411,27 @@ export default function DashboardPage() {
                 onClose={() => setShowAddModal(false)}
                 onSuccess={() => {
                     refresh();
-                    getSubscriptionStatus().then(setSubscriptionStatus);
+                    refreshSubscription();
                 }}
+                onGuestSuccess={triggerPrompt}
                 optimisticUpdate={optimisticUpdate}
             />
             <UpgradeModal
                 open={showUpgradeModal}
                 onClose={() => setShowUpgradeModal(false)}
                 currentApps={subscriptionStatus?.appCount ?? 0}
-                maxApps={15}
+                maxApps={20}
+            />
+            <GuestSignupPrompt
+                open={showGuestPrompt}
+                onClose={closePrompt}
+                applicationCount={guestAppCount}
             />
         </div>
     );
 }
 
-function NextActionCard({ action, index, onDone }: { action: NextAction; index: number; onDone: (id: string) => void }) {
+const NextActionCard = memo(function NextActionCard({ action, index, onDone }: { action: NextAction; index: number; onDone: (id: string) => void }) {
     const user = useUser();
     const iconMap = {
         "follow-up": MessageSquare,
@@ -444,22 +448,23 @@ function NextActionCard({ action, index, onDone }: { action: NextAction; index: 
         "log-outcome": { bg: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' },
     };
 
-    const handleAction = async () => {
+    const handleAction = useCallback(async () => {
         if (action.type === "follow-up") {
             await markFollowUpSent(action.application.id!, !!user);
         } else if (action.type === "prep") {
             await markPrepDone(action.application.id!, !!user);
         }
         onDone(action.id);
-    };
+    }, [action, user, onDone]);
 
     return (
-        <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className="rounded-xl p-4 flex items-center gap-4"
-            style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}
+        <div
+            className="rounded-xl p-4 flex items-center gap-4 animate-slide-in-left"
+            style={{
+                backgroundColor: '#18181b',
+                border: '1px solid #27272a',
+                animationDelay: `${index * 50}ms`
+            }}
         >
             <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -475,14 +480,14 @@ function NextActionCard({ action, index, onDone }: { action: NextAction; index: 
 
             <button
                 onClick={handleAction}
-                className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0"
+                className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-shrink-0 hover:bg-zinc-700 active:scale-95"
                 style={{ backgroundColor: '#27272a', color: 'white' }}
             >
                 Done
                 <ChevronRight className="w-4 h-4" />
             </button>
-        </motion.div>
+        </div>
     );
-}
+});
 
 

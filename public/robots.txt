@@ -1,14 +1,17 @@
 # JobFlow Robots.txt
-# Allow all search engines to crawl
+# https://trackjobflow.com
 
 User-agent: *
 Allow: /
-# Disallow internal app routes from being indexed (focus on landing page)
+
+# Disallow internal app routes (authenticated pages)
 Disallow: /board
 Disallow: /analytics
 Disallow: /settings
+Disallow: /home
+Disallow: /app/
 Disallow: /handler/
 Disallow: /api/
 
 # Sitemap location
-Sitemap: https://trackjobapplications.vercel.app/sitemap.xml
+Sitemap: https://trackjobflow.com/.xml

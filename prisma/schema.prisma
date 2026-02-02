@@ -91,6 +91,10 @@ model UserSettings {
   ghostedDays           Int      @default(21)
   streakGraceDays       Int      @default(2)
   darkMode              Boolean  @default(true)
+  // Email preferences
+  emailReminders        Boolean  @default(false) // User opted in to email reminders
+  emailFrequency        String   @default("daily") // "daily" or "weekly"
+  lastEmailSentAt       DateTime?
   // Subscription fields
   subscriptionTier      String   @default("free") // "free" or "pro"
   stripeCustomerId      String?

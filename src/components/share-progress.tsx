@@ -13,8 +13,8 @@ export function ShareProgress() {
     const level = progress?.level ?? 1;
     const appCount = apps?.length ?? 0;
 
-    const imageUrl = `https://trackjobapplications.vercel.app/api/stats-image?streak=${streak}&apps=${appCount}&level=${level}`;
-    const shareUrl = "https://trackjobapplications.vercel.app";
+    const imageUrl = `https://trackjobflow.com/api/stats-image?streak=${streak}&apps=${appCount}&level=${level}`;
+    const shareUrl = "https://trackjobflow.com";
 
     const shareText = `🔥 ${streak} day streak | 📝 ${appCount} applications tracked | ⚡ Level ${level}
 

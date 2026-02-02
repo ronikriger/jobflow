@@ -30,7 +30,7 @@ import { calculateAnalytics } from "@/lib/utils";
 import { STATUS_CONFIG, PLATFORM_CONFIG } from "@/lib/types";
 import type { ApplicationStatus } from "@/lib/types";
 import { format, subWeeks, startOfWeek, isWithinInterval, endOfWeek } from "date-fns";
-import { getSubscriptionStatus } from "@/lib/actions";
+import { useSubscription } from "@/components/subscription-provider";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { Lock, Crown } from "lucide-react";
 
@@ -51,19 +51,13 @@ export default function AnalyticsPage() {
     const { apps: applications, loading } = useApplications();
     const progress = useUserProgress();
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-    const [subscriptionStatus, setSubscriptionStatus] = useState<{
-        tier: "free" | "pro";
-        appCount: number;
-        limit: number;
-        canAddMore: boolean;
-    } | null>(null);
+
+    // Use shared subscription context
+    const { subscription: subscriptionStatus, loading: subscriptionLoading, isPro } = useSubscription();
 
     useEffect(() => {
         setIsClient(true);
-        getSubscriptionStatus().then(setSubscriptionStatus);
     }, []);
-
-    const isPro = subscriptionStatus?.tier === "pro";
 
     const analytics = useMemo(() => {
         if (!applications || applications.length === 0) return null;
@@ -146,7 +140,7 @@ export default function AnalyticsPage() {
             }));
     }, [applications]);
 
-    if (!isClient || loading) {
+    if (!isClient || loading || subscriptionLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#09090b' }}>
                 <div className="flex flex-col items-center gap-4">
@@ -281,7 +275,7 @@ export default function AnalyticsPage() {
                                         </Pie>
                                         <Tooltip
                                             contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px", color: "white" }}
-                                            formatter={(value: number) => [`${value} applications`, ""]}
+                                            formatter={(value: number, name: string, props: any) => [`${value} applications`, props.payload.name]}
                                         />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -339,7 +333,7 @@ export default function AnalyticsPage() {
                                 <YAxis dataKey="name" type="category" tick={{ fill: "#71717a", fontSize: 12 }} width={100} />
                                 <Tooltip
                                     contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px", color: "white" }}
-                                    formatter={(value: number) => [`${value} applications`, ""]}
+                                    formatter={(value: number, name: string, props: any) => [`${value} applications`, props.payload.name]}
                                 />
                                 <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                                     {funnelData.map((entry, index) => (
@@ -420,7 +414,7 @@ export default function AnalyticsPage() {
                     open={showUpgradeModal}
                     onClose={() => setShowUpgradeModal(false)}
                     currentApps={subscriptionStatus?.appCount ?? 0}
-                    maxApps={15}
+                    maxApps={20}
                 />
             </div>
         </div>

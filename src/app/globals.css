@@ -90,14 +90,14 @@ html {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 
+    box-shadow:
         0 4px 30px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .glass-card:hover {
     border-color: rgba(255, 255, 255, 0.12);
-    box-shadow: 
+    box-shadow:
         0 8px 40px rgba(0, 0, 0, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
@@ -108,7 +108,7 @@ html {
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 
+    box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.06);
     transition: all 0.3s ease;
@@ -117,7 +117,7 @@ html {
 .premium-card:hover {
     transform: translateY(-2px);
     border-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 
+    box-shadow:
         0 16px 48px rgba(0, 0, 0, 0.5),
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
@@ -150,9 +150,19 @@ html {
 }
 
 @keyframes meshFloat {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    33% { transform: translate(-10px, 10px) scale(1.02); }
-    66% { transform: translate(10px, -10px) scale(0.98); }
+
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    33% {
+        transform: translate(-10px, 10px) scale(1.02);
+    }
+
+    66% {
+        transform: translate(10px, -10px) scale(0.98);
+    }
 }
 
 /* Glow effects */
@@ -264,17 +274,20 @@ html {
 
 /* Shimmer animation for progress bars */
 @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
 }
 
 .shimmer {
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.1) 50%,
-        transparent 100%
-    );
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.1) 50%,
+            transparent 100%);
     background-size: 200% 100%;
     animation: shimmer 2s ease-in-out infinite;
 }
@@ -289,20 +302,25 @@ html {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.15) 50%,
-        transparent 100%
-    );
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.15) 50%,
+            transparent 100%);
     background-size: 200% 100%;
     animation: shimmer 2s ease-in-out infinite;
 }
 
 /* Floating animation */
 @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
 .float {
@@ -311,10 +329,13 @@ html {
 
 /* Pulse glow animation */
 @keyframes pulseGlow {
-    0%, 100% { 
+
+    0%,
+    100% {
         box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
     }
-    50% { 
+
+    50% {
         box-shadow: 0 0 40px rgba(59, 130, 246, 0.5);
     }
 }
@@ -331,7 +352,7 @@ html {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 
+    box-shadow:
         0 25px 50px -12px rgba(0, 0, 0, 0.6),
         0 0 0 1px rgba(255, 255, 255, 0.05);
 }
@@ -391,8 +412,13 @@ html {
 
 /* Animations */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes slideUp {
@@ -400,6 +426,7 @@ html {
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -411,6 +438,7 @@ html {
         opacity: 0;
         transform: translateY(-20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -422,6 +450,7 @@ html {
         opacity: 0;
         transform: scale(0.9);
     }
+
     to {
         opacity: 1;
         transform: scale(1);
@@ -433,6 +462,7 @@ html {
         opacity: 0;
         transform: translateX(-20px);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -466,7 +496,7 @@ html {
 
 .card-hover:hover {
     transform: translateY(-4px);
-    box-shadow: 
+    box-shadow:
         0 20px 40px -15px rgba(0, 0, 0, 0.4),
         0 0 0 1px rgba(255, 255, 255, 0.1);
 }
@@ -517,8 +547,15 @@ select:focus {
 
 /* Stat card number animation */
 @keyframes countUp {
-    from { opacity: 0; transform: scale(0.8); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .stat-number {
@@ -527,7 +564,7 @@ select:focus {
 
 /* Subtle grid background */
 .grid-bg {
-    background-image: 
+    background-image:
         linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
     background-size: 50px 50px;
@@ -542,4 +579,58 @@ select:focus {
     opacity: 0.03;
     pointer-events: none;
     z-index: 1000;
+}
+
+/* Hide scrollbar for horizontal scroll containers */
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+/* Mobile touch improvements */
+@media (max-width: 640px) {
+
+    /* Larger tap targets on mobile */
+    button,
+    a {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Better touch scrolling */
+    .overflow-x-auto {
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+    }
+
+    /* Prevent text selection while dragging */
+    .touch-manipulation {
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+}
+
+/* Smooth snap scrolling for demo board */
+.snap-x {
+    scroll-snap-type: x mandatory;
+}
+
+.snap-start {
+    scroll-snap-align: start;
+}
+
+/* Active states for mobile touch feedback */
+@media (hover: none) {
+    .active\:scale-\[0\.98\]:active {
+        transform: scale(0.98);
+    }
+
+    .active\:bg-zinc-800:active {
+        background-color: rgb(39, 39, 42);
+    }
 }

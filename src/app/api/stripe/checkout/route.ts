@@ -50,8 +50,8 @@ export async function POST() {
                 },
             ],
             mode: "subscription",
-            success_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://trackjobapplications.vercel.app"}/home?success=true`,
-            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://trackjobapplications.vercel.app"}/home?canceled=true`,
+            success_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://trackjobflow.com"}/home?success=true`,
+            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://trackjobflow.com"}/home?canceled=true`,
             metadata: {
                 userId: user.id,
             },

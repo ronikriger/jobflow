@@ -5,6 +5,7 @@ import { Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { DataMigration } from "@/components/data-migration";
 import { ToastProvider } from "@/components/toast";
 import JsonLd from "@/components/json-ld";
@@ -28,14 +29,14 @@ export const metadata: Metadata = {
     authors: [{ name: "JobFlow" }],
     creator: "JobFlow",
     publisher: "JobFlow",
-    metadataBase: new URL("https://trackjobapplications.vercel.app"),
+    metadataBase: new URL("https://trackjobflow.com"),
     alternates: {
         canonical: "/",
     },
     openGraph: {
         title: "JobFlow | Free Job Application Tracker",
         description: "Track your job applications, manage your pipeline, and land your dream job faster. Free with Kanban board & analytics.",
-        url: "https://trackjobapplications.vercel.app",
+        url: "https://trackjobflow.com",
         siteName: "JobFlow",
         locale: "en_US",
         type: "website",
@@ -93,6 +94,7 @@ export default function RootLayout({
                     </ToastProvider>
                 </Providers>
                 <Analytics />
+                <SpeedInsights />
             </StackTheme></StackProvider></body>
         </html>
     );

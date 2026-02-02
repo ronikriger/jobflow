@@ -30,7 +30,8 @@ import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useToast } from "@/components/toast";
 import { UpgradeModal } from "@/components/upgrade-modal";
-import { getSubscriptionStatus } from "@/lib/actions";
+import { useSubscription } from "@/components/subscription-provider";
+import { GuestSignupPrompt, useGuestSignupPrompt } from "@/components/guest-signup-prompt";
 
 const PIPELINE_STAGES: { id: ApplicationStatus; title: string; color: string }[] = [
     { id: "saved", title: "Saved", color: "#818cf8" },
@@ -236,13 +237,15 @@ export default function BoardPage() {
     const [activeId, setActiveId] = useState<number | null>(null);
     const [overId, setOverId] = useState<ApplicationStatus | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
-    const [subscriptionStatus, setSubscriptionStatus] = useState<{
-        tier: "free" | "pro"; appCount: number; limit: number; canAddMore: boolean;
-    } | null>(null);
+
+    // Use shared subscription context
+    const { subscription: subscriptionStatus, loading: subscriptionLoading, refresh: refreshSubscription } = useSubscription();
+
+    // Guest signup prompt
+    const { showPrompt: showGuestPrompt, appCount: guestAppCount, triggerPrompt, closePrompt } = useGuestSignupPrompt();
 
     useEffect(() => {
         setIsClient(true);
-        getSubscriptionStatus().then(setSubscriptionStatus);
     }, []);
 
     const sensors = useSensors(
@@ -341,7 +344,7 @@ export default function BoardPage() {
         }
     };
 
-    if (!isClient || loading) {
+    if (!isClient || loading || subscriptionLoading) {
         return <BoardSkeleton />;
     }
 
@@ -368,7 +371,14 @@ export default function BoardPage() {
                         <Plus className="w-5 h-5" />
                         Add First Application
                     </button>
-                    <AddApplicationModal open={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={refresh} optimisticUpdate={optimisticUpdate} />
+                    <AddApplicationModal
+                        open={showAddModal}
+                        onClose={() => setShowAddModal(false)}
+                        onSuccess={refresh}
+                        onGuestSuccess={triggerPrompt}
+                        optimisticUpdate={optimisticUpdate}
+                    />
+                    <GuestSignupPrompt open={showGuestPrompt} onClose={closePrompt} applicationCount={guestAppCount} />
                 </div>
             </div>
         );
@@ -478,15 +488,21 @@ export default function BoardPage() {
                     onClose={() => setShowAddModal(false)}
                     onSuccess={() => {
                         refresh();
-                        getSubscriptionStatus().then(setSubscriptionStatus);
+                        refreshSubscription();
                     }}
+                    onGuestSuccess={triggerPrompt}
                     optimisticUpdate={optimisticUpdate}
                 />
                 <UpgradeModal
                     open={showUpgradeModal}
                     onClose={() => setShowUpgradeModal(false)}
                     currentApps={subscriptionStatus?.appCount ?? 0}
-                    maxApps={15}
+                    maxApps={20}
+                />
+                <GuestSignupPrompt
+                    open={showGuestPrompt}
+                    onClose={closePrompt}
+                    applicationCount={guestAppCount}
                 />
             </div>
         </DndContext>
